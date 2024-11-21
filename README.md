@@ -1,96 +1,154 @@
 # Dodesu
 
-A Python application for downloading and converting manga from doujindesu.tv into PDF format, featuring both GUI and CLI interfaces.
+A powerful manga downloader and Python wrapper for doujindesu.tv with both CLI and GUI interfaces.
 
-## Table of Contents
-
-* [📖 Introduction](#introduction)
-* [⚙️ Features](#features)
-* [⚠️ Requirements](#requirements)
-* [📦 Installation](#installation)
-* [💻 Usage](#usage)
-* [🤝 Contributing](#contributing)
-
-## Introduction
-
-Dodesu is a powerful Python tool that automates the process of downloading manga chapters from doujindesu.tv and converting them into PDF format. It offers both a user-friendly graphical interface and a command-line interface to suit different user preferences.
+![Python Version](https://img.shields.io/pypi/pyversions/dodesu)
+![License](https://img.shields.io/pypi/l/dodesu)
+![PyPI Version](https://img.shields.io/pypi/v/dodesu)
+![Downloads](https://img.shields.io/pypi/dm/dodesu)
 
 ## Features
 
-* 🔍 Search manga by title or URL
-* 📥 Batch download multiple chapters
-* 📱 Modern, responsive GUI built with Flet
-* 🖥️ Command-line interface for automation
-* 🌙 Dark/Light theme support
-* 📄 Automatic PDF conversion
-* 🔄 Pagination support for search results
-* 🖼️ High-quality image preservation
-* 🚀 Multi-threaded downloads for better performance
-
-## Requirements
-
-* Python 3.11 or higher
-* Internet connection
-* Supported operating systems: Windows, macOS (haven't tested), Linux (haven't tested)
+- 🔍 Search manga by title
+- 📱 Modern GUI interface using Flet
+- 💻 Feature-rich CLI interface
+- 📖 Download single or multiple chapters
+- 📑 Automatic PDF conversion
+- 🌙 Dark/Light theme support
+- 🎨 Beautiful and intuitive interface
 
 ## Installation
 
-1. Clone the repository:
+### Basic Installation
 ```bash
-git clone https://github.com/MhankBarBAr/dodesu.git
-cd dodesu
+pip install dodesu
+# or using uv
+uv pip install dodesu
 ```
 
-2. Install uv (recommended package manager):
+### With GUI Support
+> [!NOTE]
+> GUI support requires `flet` to be installed.
+> I just tested it on Windows, so idk if it works on Linux or MacOS. just let me know if it does.
 ```bash
-pip install uv
+pip install dodesu[gui]
+# or using uv
+uv pip install "dodesu[gui]"
 ```
 
-3. Install dependencies:
+## Command-Line Usage
+
+### Available Commands
 ```bash
-uv pip install -r pyproject.toml
+# Launch GUI interface
+python -m dodesu --gui
+
+# Launch interactive CLI interface
+python -m dodesu --interactive
+
+# Search manga by keyword
+python -m dodesu --search "manga name"
+
+# Download manga directly by URL
+python -m dodesu --url "https://doujindesu.tv/manga/your-manga-url"
+
+# Show help message
+python -m dodesu --help
 ```
 
-## Usage
-
-### Graphical Interface (GUI)
-
-To launch the GUI version:
-```bash
-uv run python -m dodesu --gui
+### Command Options
+```
+Options:
+  --gui          Run in GUI mode (requires dodesu[gui] installation)
+  --search TEXT  Search manga by keyword
+  --url TEXT     Download manga by URL
+  --interactive  Run in interactive CLI mode
 ```
 
-### Command Line Interface (CLI)
-
-To use the CLI version:
+### Examples
 ```bash
-uv run python -m dodesu --cli
+# Search for a manga
+python -m dodesu --search "manga title"
+
+# Download manga from URL
+python -m dodesu --url "https://doujindesu.tv/manga/example"
+
+# Launch GUI interface
+python -m dodesu --gui
+
+# Start interactive CLI mode
+python -m dodesu --interactive
 ```
 
-### Features Guide
+### GUI Mode
+```bash
+python -m dodesu --gui
+```
 
-1. **Search by Title**
-   - Enter manga title in the search box
-   - Browse through paginated results
-   - Click on a manga to view details
-   - Download individual chapters or entire series
+### CLI Features
 
-2. **Download by URL**
-   - Paste direct manga URL
-   - Automatically downloads all available chapters
-   - Converts to PDF with original quality
+- 🎨 Colorful and intuitive interface
+- 📄 Detailed manga information
+- 📚 Chapter selection options:
+  - Download all chapters
+  - Download specific chapter
+  - Download range of chapters
+- 🔄 Pagination support for search results
+- ✨ Progress indicators
+- 🎯 Smart single-chapter handling
 
-3. **Theme Switching**
-   - Toggle between light and dark themes
-   - Persistent theme preference
+### GUI Features
+
+- 🎨 Modern and responsive design
+- 🌓 Dark/Light theme toggle
+- 📱 Mobile-friendly layout
+- 🖼️ Thumbnail previews
+- 📊 Download progress tracking
+- 🔍 Advanced search capabilities
+
+## Python API Usage
+
+```python
+from dodesu import Doujindesu
+
+# Search for manga
+results = Doujindesu.search("manga name")
+for manga in results.results:
+    print(f"Title: {manga.name}")
+    print(f"URL: {manga.url}")
+
+# Download manga
+manga = Doujindesu("manga_url")
+details = manga.get_details()
+chapters = manga.get_all_chapters()
+
+# Get chapter images
+manga.url = chapters[0]  # Set to specific chapter
+images = manga.get_all_images()
+```
+
+## Configuration
+
+Downloaded files are saved in the `result` directory by default.
+
+## Dependencies
+
+- beautifulsoup4 >= 4.9.3
+- tls-client >= 0.2.1
+- rich >= 10.0.0
+- Pillow >= 8.0.0
+- reportlab >= 4.0.0
+- pydantic >= 2.0.0
+- flet >= 0.7.0 (GUI only)
 
 ## Contributing
 
-Contributions are welcome! Here's how you can help:
-
 1. Fork the repository
-2. Create a new branch (`git checkout -b feature/improvement`)
-3. Make your changes
-4. Commit your changes (`git commit -am 'Add new feature'`)
-5. Push to the branch (`git push origin feature/improvement`)
-6. Create a Pull Request
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
