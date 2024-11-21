@@ -1,9 +1,9 @@
 """Dodesu - A Python wrapper for doujindesu.tv manga downloader"""
 
 from .core.doudesu import Doujindesu
-from .models.manga import Result, DetailsResult
+from .models.manga import Result, DetailsResult, SearchResult
 
 from importlib.metadata import version
 
 __version__ = version("doudesu")
-__all__ = ["Doujindesu", "Result", "DetailsResult"]
+__all__ = ["Doujindesu", "Result", "DetailsResult", "SearchResult"]
