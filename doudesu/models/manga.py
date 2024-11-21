@@ -33,9 +33,7 @@ class Result(BaseModel):
     status: str = Field(default="Finished")
 
     class Config:
-        """Pydantic model configuration"""
-
-        frozen = True  # Makes the model immutable like a dataclass
+        frozen = True
 
 
 class SearchResult(BaseModel):
@@ -53,8 +51,6 @@ class SearchResult(BaseModel):
     previous_page_url: Optional[str] = None
 
     class Config:
-        """Pydantic model configuration"""
-
         frozen = True
 
 
@@ -87,6 +83,4 @@ class DetailsResult(BaseModel):
     chapter_urls: List[str] = Field(default_factory=list)
 
     class Config:
-        """Pydantic model configuration"""
-
         frozen = True

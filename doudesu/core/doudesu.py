@@ -12,7 +12,7 @@ from bs4 import BeautifulSoup as Bs
 from rich import print
 from tls_client import Session
 
-from .constants import (
+from ..utils.constants import (
     BASE_URL,
     CHAPTER_API_ENDPOINT,
     CHAPTER_ID_PATTERN,
@@ -20,8 +20,8 @@ from .constants import (
     IMAGE_SRC_PATTERN,
     TLS_CLIENT_CONFIG,
 )
-from .converter import ImageToPDFConverter
-from .models import DetailsResult, Result, SearchResult
+from ..utils.converter import ImageToPDFConverter
+from ..models import DetailsResult, Result, SearchResult
 
 
 class Doujindesu(ImageToPDFConverter):

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "doudesu"
-version = "0.3.0"
+version = "0.4.0"
 description = "A Python wrapper and downloader for doujindesu.tv"
 readme = "README.md"
 authors = [
@@ -45,4 +45,7 @@ Issues = "https://github.com/MhankBarBar/dodesu/issues"
 doudesu = "doudesu.__main__:main"
 
 [tool.hatch.build]
+packages = ["doudesu"]
+
+[tool.hatch.build.targets.wheel]
 packages = ["doudesu"]

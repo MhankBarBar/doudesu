@@ -6,7 +6,9 @@ This module requires the 'gui' extra dependencies.
 import os
 import sys
 from importlib.util import find_spec
-from typing import Optional, List
+from typing import List, Optional
+
+from rich.console import Console
 
 # Check if flet is installed
 if find_spec("flet") is None:
@@ -17,9 +19,35 @@ if find_spec("flet") is None:
 
 import flet as ft  # noqa: E402
 
-from .converter import ImageToPDFConverter  # noqa: E402
-from .doudesu import Doujindesu, Result  # noqa: E402
-from .loading_animation import LoadingAnimation  # noqa: E402
+from ..core.doudesu import Doujindesu, Result  # noqa: E402
+from ..utils.converter import ImageToPDFConverter  # noqa: E402
+from .components.loading import LoadingAnimation  # noqa: E402
+
+console = Console()
+
+
+def run_gui():
+    """Run the GUI version of the application."""
+    try:
+        import flet as ft
+
+        def main(page: ft.Page):
+            page.title = "Doujindesu Downloader"
+            page.window.width = 1100
+            page.window.height = 900
+            page.window.resizable = True
+
+            app = DoujindesuApp()
+            app.set_page(page)
+            page.add(app.build())
+
+        ft.app(target=main)
+    except ImportError:
+        console.print(
+            "[red]GUI dependencies not installed. Please install with:[/red]"
+            "\n[yellow]pip install doudesu\[gui][/yellow]"
+        )
+        sys.exit(1)
 
 
 class DoujindesuApp:
@@ -882,9 +910,133 @@ class DoujindesuApp:
             self.status_text.update()
             return
 
-        self.status_text.value = "Downloading images..."
-        self.status_text.update()
-        self.download_manga(e, url)
+        try:
+            manga = Doujindesu(url)
+            details = manga.get_details()
+            if not details:
+                self.snackbar.bgcolor = ft.colors.RED_700
+                self.snackbar.content = ft.Text("Failed to get manga details!", color=ft.colors.WHITE)
+                self.page.show_snack_bar(self.snackbar)
+                return
+
+            chapters = manga.get_all_chapters()
+            if not chapters:
+                self.snackbar.bgcolor = ft.colors.RED_700
+                self.snackbar.content = ft.Text("No chapters found!", color=ft.colors.WHITE)
+                self.page.show_snack_bar(self.snackbar)
+                return
+
+            # If only one chapter, ask for confirmation
+            if len(chapters) == 1:
+                def handle_confirm(e):
+                    dialog.open = False
+                    self.page.update()
+                    self.download_manga(e, url, all_chapters=True)
+
+                dialog = ft.AlertDialog(
+                    modal=True,
+                    title=ft.Text("Confirm Download"),
+                    content=ft.Text(f"Download {details.name}?"),
+                    actions=[
+                        ft.TextButton("Cancel", on_click=lambda e: setattr(dialog, 'open', False)),
+                        ft.TextButton("Download", on_click=handle_confirm),
+                    ],
+                    actions_alignment=ft.MainAxisAlignment.END,
+                )
+
+                self.page.dialog = dialog
+                dialog.open = True
+                self.page.update()
+                return
+
+            # Create chapter selection dialog
+            chapter_selector = ft.Dropdown(
+                label="Select Chapter",
+                border=ft.InputBorder.UNDERLINE,
+                focused_border_color=ft.colors.BLUE_700,
+                focused_color=ft.colors.BLUE_700,
+                text_size=16,
+                content_padding=15,
+                options=[
+                    ft.dropdown.Option(f"Chapter {i+1}")
+                    for i in range(len(chapters))
+                ],
+                width=200,
+            )
+
+            def close_dialog(e):
+                dialog.open = False
+                self.page.update()
+
+            def handle_download_choice(e, choice: str):
+                dialog.open = False
+                self.page.update()
+                
+                if choice == "single" and chapter_selector.value:
+                    chapter_index = int(chapter_selector.value.split()[-1])
+                    self.download_manga(e, url, chapter_index=str(chapter_index))
+                elif choice == "all":
+                    self.download_manga(e, url, all_chapters=True)
+
+            dialog = ft.AlertDialog(
+                modal=True,
+                title=ft.Text(f"Download Options for {details.name}", size=20, weight=ft.FontWeight.BOLD),
+                content=ft.Column(
+                    [
+                        ft.Text(f"Found {len(chapters)} chapters", size=16),
+                        ft.Divider(),
+                        chapter_selector,
+                        ft.Row(
+                            [
+                                ft.ElevatedButton(
+                                    content=ft.Row(
+                                        [
+                                            ft.Icon(ft.icons.DOWNLOAD, size=20),
+                                            ft.Text("Download Selected", size=16),
+                                        ],
+                                        spacing=8,
+                                    ),
+                                    style=ft.ButtonStyle(
+                                        bgcolor=ft.colors.BLUE_700,
+                                        color=ft.colors.WHITE,
+                                    ),
+                                    on_click=lambda e: handle_download_choice(e, "single"),
+                                ),
+                                ft.ElevatedButton(
+                                    content=ft.Row(
+                                        [
+                                            ft.Icon(ft.icons.DOWNLOAD_FOR_OFFLINE, size=20),
+                                            ft.Text("Download All", size=16),
+                                        ],
+                                        spacing=8,
+                                    ),
+                                    style=ft.ButtonStyle(
+                                        bgcolor=ft.colors.GREEN_700,
+                                        color=ft.colors.WHITE,
+                                    ),
+                                    on_click=lambda e: handle_download_choice(e, "all"),
+                                ),
+                            ],
+                            alignment=ft.MainAxisAlignment.END,
+                            spacing=10,
+                        ),
+                    ],
+                    spacing=20,
+                    width=400,
+                ),
+                actions=[
+                    ft.TextButton("Cancel", on_click=close_dialog),
+                ],
+            )
+
+            self.page.dialog = dialog
+            dialog.open = True
+            self.page.update()
+
+        except Exception as e:
+            self.snackbar.bgcolor = ft.colors.RED_700
+            self.snackbar.content = ft.Text(f"Error: {str(e)}", color=ft.colors.WHITE)
+            self.page.show_snack_bar(self.snackbar)
 
     def download_manga(
         self,
@@ -1099,13 +1251,13 @@ class DoujindesuApp:
         self.page.window_maximized = True
         self.page.theme_mode = "dark"  # Set initial theme
         self.theme_mode = ft.ThemeMode.DARK  # Ensure theme_mode is synchronized
-        
+
         # Ensure main view is visible initially
         self.main_view.visible = True
         self.url_download_view.visible = False
         self.search_results_view.visible = False
         self.details_view.visible = False
-        
+
         self.page.update()
 
     def toggle_theme(self, e):
