@@ -1,0 +1,19 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# linting
+.ruff_cache/
+
+# backup files
+*~
+
+# pycharm
+.idea/
