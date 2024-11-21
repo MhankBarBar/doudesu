@@ -3,8 +3,8 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "dodesu"
-version = "0.1.0"
+name = "doudesu"
+version = "0.3.0"
 description = "A Python wrapper and downloader for doujindesu.tv"
 readme = "README.md"
 authors = [
@@ -42,7 +42,7 @@ Repository = "https://github.com/MhankBarBar/dodesu.git"
 Issues = "https://github.com/MhankBarBar/dodesu/issues"
 
 [project.scripts]
-dodesu = "dodesu.__main__:main"
+doudesu = "doudesu.__main__:main"
 
 [tool.hatch.build]
-packages = ["src/dodesu"]
+packages = ["doudesu"]

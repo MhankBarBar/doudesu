@@ -1,11 +1,11 @@
-# Dodesu
+# Doudesu
 
 A powerful manga downloader and Python wrapper for doujindesu.tv with both CLI and GUI interfaces.
 
-![Python Version](https://img.shields.io/pypi/pyversions/dodesu)
-![License](https://img.shields.io/pypi/l/dodesu)
-![PyPI Version](https://img.shields.io/pypi/v/dodesu)
-![Downloads](https://img.shields.io/pypi/dm/dodesu)
+![Python Version](https://img.shields.io/pypi/pyversions/doudesu)
+![License](https://img.shields.io/pypi/l/doudesu)
+![PyPI Version](https://img.shields.io/pypi/v/doudesu)
+![Downloads](https://img.shields.io/pypi/dm/doudesu)
 
 ## Features
 
@@ -21,9 +21,9 @@ A powerful manga downloader and Python wrapper for doujindesu.tv with both CLI a
 
 ### Basic Installation
 ```bash
-pip install dodesu
+pip install doudesu
 # or using uv
-uv pip install dodesu
+uv pip install doudesu
 ```
 
 ### With GUI Support
@@ -31,9 +31,9 @@ uv pip install dodesu
 > GUI support requires `flet` to be installed.
 > I just tested it on Windows, so idk if it works on Linux or MacOS. just let me know if it does.
 ```bash
-pip install dodesu[gui]
+pip install doudesu[gui]
 # or using uv
-uv pip install "dodesu[gui]"
+uv pip install "doudesu[gui]"
 ```
 
 ## Command-Line Usage
@@ -41,48 +41,28 @@ uv pip install "dodesu[gui]"
 ### Available Commands
 ```bash
 # Launch GUI interface
-python -m dodesu --gui
+python -m doudesu --gui
 
 # Launch interactive CLI interface
-python -m dodesu --interactive
+python -m doudesu --interactive
 
 # Search manga by keyword
-python -m dodesu --search "manga name"
+python -m doudesu --search "manga name"
 
 # Download manga directly by URL
-python -m dodesu --url "https://doujindesu.tv/manga/your-manga-url"
+python -m doudesu --url "https://doujindesu.tv/manga/your-manga-url"
 
 # Show help message
-python -m dodesu --help
+python -m doudesu --help
 ```
 
 ### Command Options
 ```
 Options:
-  --gui          Run in GUI mode (requires dodesu[gui] installation)
+  --gui          Run in GUI mode (requires doudesu[gui] installation)
   --search TEXT  Search manga by keyword
   --url TEXT     Download manga by URL
   --interactive  Run in interactive CLI mode
-```
-
-### Examples
-```bash
-# Search for a manga
-python -m dodesu --search "manga title"
-
-# Download manga from URL
-python -m dodesu --url "https://doujindesu.tv/manga/example"
-
-# Launch GUI interface
-python -m dodesu --gui
-
-# Start interactive CLI mode
-python -m dodesu --interactive
-```
-
-### GUI Mode
-```bash
-python -m dodesu --gui
 ```
 
 ### CLI Features
@@ -109,7 +89,7 @@ python -m dodesu --gui
 ## Python API Usage
 
 ```python
-from dodesu import Doujindesu
+from doudesu import Doujindesu
 
 # Search for manga
 results = Doujindesu.search("manga name")

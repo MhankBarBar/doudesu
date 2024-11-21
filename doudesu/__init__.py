@@ -3,6 +3,10 @@
 from .doudesu import Doujindesu
 from .models import Result, SearchResult, DetailsResult
 
-__version__ = "0.1.0"
+from importlib.metadata import version
+
+__version__ = version("doudesu")
 
 __all__ = ["Doujindesu", "Result", "SearchResult", "DetailsResult"]
+
+print(__version__)
