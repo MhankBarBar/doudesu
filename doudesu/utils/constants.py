@@ -1,5 +1,5 @@
 """
-Constants used throughout the Doujindesu library.
+Constants used throughout the Doudesu library.
 
 This module contains all constant values used by the Doujindesu API wrapper,
 including URLs, HTTP headers, and other configuration values.
@@ -26,3 +26,9 @@ TLS_CLIENT_CONFIG = {
 # Regular expressions
 CHAPTER_ID_PATTERN = r"load_data\((\d+)\)"
 IMAGE_SRC_PATTERN = r"src=\"(.*?)\""
+
+DEFAULT_SETTINGS = {
+    "result_path": "result",
+    "default_theme": "dark",
+    "blur_thumbnails": True,
+}

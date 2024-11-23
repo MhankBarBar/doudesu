@@ -9,8 +9,8 @@ from importlib.util import find_spec
 
 from rich.console import Console
 
-from .ui import run_cli, run_gui
 from .core import Doujindesu
+from .ui import run_cli, run_gui
 
 console = Console()
 
@@ -22,29 +22,30 @@ def check_gui_dependencies() -> bool:
 
 def main():
     """Main entry point for the package."""
-    parser = argparse.ArgumentParser(
-        description="Doudesu - A manga downloader for doujindesu.tv"
-    )
+    parser = argparse.ArgumentParser(description="Doudesu - A manga downloader for doujindesu.tv")
     parser.add_argument(
         "--gui",
         action="store_true",
         help="Run in GUI mode (requires doudesu[gui] installation)",
     )
+    parser.add_argument(
+        "--browser",
+        action="store_true",
+        help="Run GUI in browser mode on localhost:6969",
+    )
     parser.add_argument("--search", type=str, help="Search manga by keyword")
     parser.add_argument("--url", type=str, help="Download manga by URL")
-    parser.add_argument(
-        "--cli", action="store_true", help="Run in interactive CLI mode"
-    )
+    parser.add_argument("--cli", action="store_true", help="Run in interactive CLI mode")
 
     args = parser.parse_args()
 
-    if args.gui:
+    if args.gui or args.browser:
         if check_gui_dependencies():
-            run_gui()
+            run_gui(browser_mode=args.browser)
         else:
             console.print(
                 "[red]GUI dependencies not installed. Please install with:[/red]"
-                "\n[yellow]pip install doudesu\[gui][/yellow]"
+                "\n[yellow]pip install doudesu\[gui][/yellow]"  # noqa: W605
             )
             sys.exit(1)
     elif args.search:
@@ -71,7 +72,7 @@ def main():
             else:
                 console.print("[red]Could not get manga details[/red]")
         except Exception as e:
-            console.print(f"[red]Error: {str(e)}[/red]")
+            console.print(f"[red]Error: {e!s}[/red]")
     elif args.cli:
         try:
             run_cli()

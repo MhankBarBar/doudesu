@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "doudesu"
-version = "0.4.0"
+version = "0.5.0"
 description = "A Python wrapper and downloader for doujindesu.tv"
 readme = "README.md"
 authors = [
@@ -12,7 +12,7 @@ authors = [
 ]
 license = { file = "LICENSE" }
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
@@ -37,9 +37,9 @@ requires-python = ">=3.10"
 gui = ["flet>=0.7.0"]
 
 [project.urls]
-Homepage = "https://github.com/MhankBarBar/dodesu"
-Repository = "https://github.com/MhankBarBar/dodesu.git"
-Issues = "https://github.com/MhankBarBar/dodesu/issues"
+Homepage = "https://github.com/MhankBarBar/doudesu"
+Repository = "https://github.com/MhankBarBar/doudesu.git"
+Issues = "https://github.com/MhankBarBar/doudesu/issues"
 
 [project.scripts]
 doudesu = "doudesu.__main__:main"

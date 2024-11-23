@@ -6,12 +6,12 @@ allowing users to search, download, and convert manga chapters to PDF format.
 """
 
 import re
-from typing import List, Optional
 
 from bs4 import BeautifulSoup as Bs
 from rich import print
 from tls_client import Session
 
+from ..models import DetailsResult, Result, SearchResult
 from ..utils.constants import (
     BASE_URL,
     CHAPTER_API_ENDPOINT,
@@ -21,7 +21,6 @@ from ..utils.constants import (
     TLS_CLIENT_CONFIG,
 )
 from ..utils.converter import ImageToPDFConverter
-from ..models import DetailsResult, Result, SearchResult
 
 
 class Doujindesu(ImageToPDFConverter):
@@ -41,11 +40,11 @@ class Doujindesu(ImageToPDFConverter):
         soup (Optional[Bs]): BeautifulSoup object for parsing HTML
     """
 
-    def __init__(self, url: str, proxy: Optional[str] = None):
+    def __init__(self, url: str, proxy: str | None = None):
         super().__init__()
         self.url: str = url
-        self.proxy: Optional[str] = proxy
-        self.soup: Optional[Bs] = None
+        self.proxy: str | None = proxy
+        self.soup: Bs | None = None
 
     @property
     def create_session(self) -> Session:
@@ -70,7 +69,7 @@ class Doujindesu(ImageToPDFConverter):
         self.soup = Bs(content, "html.parser")
         ses.close()
 
-    def get_id(self, text: str) -> Optional[int]:
+    def get_id(self, text: str) -> int | None:
         """
         Extracts the manga ID from the given text.
 
@@ -78,7 +77,7 @@ class Doujindesu(ImageToPDFConverter):
             text (str): HTML text containing the manga ID
 
         Returns:
-            Optional[int]: Extracted manga ID or None if not found
+            int | None: Extracted manga ID or None if not found
 
         Raises:
             ValueError: If ID cannot be extracted from the text
@@ -89,7 +88,7 @@ class Doujindesu(ImageToPDFConverter):
         else:
             raise ValueError("ID could not be extracted from the text.")
 
-    def get_all_chapters(self) -> List[str]:
+    def get_all_chapters(self) -> list[str]:
         """
         Retrieves URLs for all chapters of the manga.
 
@@ -97,17 +96,15 @@ class Doujindesu(ImageToPDFConverter):
             list[str]: List of chapter URLs in reverse chronological order
         """
         self.scrap()
-        urls = list(
-            reversed([BASE_URL + x.a.get("href") for x in self.soup.select("span.eps")])
-        )
+        urls = list(reversed([BASE_URL + x.a.get("href") for x in self.soup.select("span.eps")]))
         return urls
 
-    def get_all_images(self) -> List[str]:
+    def get_all_images(self) -> list[str]:
         """
         Retrieves all image URLs from the current chapter.
 
         Returns:
-            List[str]: List of image URLs for the chapter
+            list[str]: List of image URLs for the chapter
         """
         self.scrap()
         _id = self.get_id(self.soup.prettify())
@@ -116,12 +113,12 @@ class Doujindesu(ImageToPDFConverter):
         ses.close()
         return re.findall(IMAGE_SRC_PATTERN, req.text)
 
-    def get_details(self) -> Optional[DetailsResult]:
+    def get_details(self) -> DetailsResult | None:
         """
         Retrieves detailed information about the manga.
 
         Returns:
-            Optional[DetailsResult]: Detailed manga information or None if not found
+            DetailsResult | None: Detailed manga information or None if not found
         """
         self.scrap()
         soup = self.soup.find("main", {"id": "archive"})
@@ -131,26 +128,21 @@ class Doujindesu(ImageToPDFConverter):
             name="-".join(self.soup.title.text.split("-")[:-1]).strip(),
             url=self.url,
             thumbnail=self.soup.find("figure", {"class": "thumbnail"}).img.get("src"),
-            genre=[
-                x.text.strip()
-                for x in soup.find("div", {"class": "tags"}).find_all("a")
-            ],
+            genre=[x.text.strip() for x in soup.find("div", {"class": "tags"}).find_all("a")],
             series=soup.find("tr", {"class": "parodies"}).a.text.strip(),
             author=soup.find("tr", {"class": "pages"}).a.text.strip(),
             type=soup.find("tr", {"class": "magazines"}).a.text.strip(),
             score=float(soup.find("div", {"class": "rating-prc"}).text.strip()),
             status=soup.find("tr", {"class": ""}).a.text.strip(),
-            chapter_urls=list(
-                reversed([BASE_URL + x.a.get("href") for x in soup.select("span.eps")])
-            ),
+            chapter_urls=list(reversed([BASE_URL + x.a.get("href") for x in soup.select("span.eps")])),
         )
 
-    def get_search(self) -> Optional[SearchResult]:
+    def get_search(self) -> SearchResult | None:
         """
         Retrieves search results from the current URL.
 
         Returns:
-            Optional[SearchResult]: Search results with pagination or None if no results found
+            SearchResult | None: Search results with pagination or None if no results found
         """
         self.scrap()
         if "No result found" in self.soup.prettify():
@@ -183,7 +175,7 @@ class Doujindesu(ImageToPDFConverter):
         )
 
     @classmethod
-    def search(cls, query: str) -> Optional[SearchResult]:
+    def search(cls, query: str) -> SearchResult | None:
         """
         Searches for manga by keyword.
 
@@ -191,13 +183,13 @@ class Doujindesu(ImageToPDFConverter):
             query (str): Search keyword
 
         Returns:
-            Optional[SearchResult]: Search results or None if no results found
+            SearchResult | None: Search results or None if no results found
         """
         x = cls(f"{BASE_URL}/?s={query}")
         return x.get_search()
 
     @classmethod
-    def get_search_by_url(cls, url: str) -> Optional[SearchResult]:
+    def get_search_by_url(cls, url: str) -> SearchResult | None:
         """
         Retrieves search results from a specific URL.
 
@@ -205,7 +197,7 @@ class Doujindesu(ImageToPDFConverter):
             url (str): URL to search results page
 
         Returns:
-            Optional[SearchResult]: Search results or None if no results found
+            SearchResult | None: Search results or None if no results found
         """
         x = cls(url)
         return x.get_search()
@@ -213,9 +205,7 @@ class Doujindesu(ImageToPDFConverter):
 
 def example_usage():
     # Example usage
-    manga = Doujindesu(
-        f"{BASE_URL}/manga/seiwayaki-kaasan-ni-doutei-made-sewa-shitemoraimasu/"
-    )
+    manga = Doujindesu(f"{BASE_URL}/manga/seiwayaki-kaasan-ni-doutei-made-sewa-shitemoraimasu/")
 
     # Get manga details
     details = manga.get_details()

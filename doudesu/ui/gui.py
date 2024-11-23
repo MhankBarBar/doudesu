@@ -1,32 +1,24 @@
 """
-GUI interface for the Dodesu manga downloader.
+GUI interface for the Doujindesu manga downloader.
 This module requires the 'gui' extra dependencies.
 """
 
 import os
 import sys
-from importlib.util import find_spec
-from typing import List, Optional
+from pathlib import Path
 
+import flet as ft
 from rich.console import Console
 
-# Check if flet is installed
-if find_spec("flet") is None:
-    print("Error: flet package is not installed.")
-    print("Please install the GUI dependencies with:")
-    print("pip install dodesu[gui]")
-    sys.exit(1)
-
-import flet as ft  # noqa: E402
-
-from ..core.doudesu import Doujindesu, Result  # noqa: E402
-from ..utils.converter import ImageToPDFConverter  # noqa: E402
-from .components.loading import LoadingAnimation  # noqa: E402
+from ..core.doudesu import Doujindesu, Result
+from ..utils.constants import DEFAULT_SETTINGS
+from ..utils.converter import ImageToPDFConverter
+from .components.loading import LoadingAnimation
 
 console = Console()
 
 
-def run_gui():
+def run_gui(browser_mode: bool = False):
     """Run the GUI version of the application."""
     try:
         import flet as ft
@@ -41,11 +33,21 @@ def run_gui():
             app.set_page(page)
             page.add(app.build())
 
-        ft.app(target=main)
+        assets_dir = Path(__file__).parent.parent / "assets"
+
+        if browser_mode:
+            ft.app(
+                target=main,
+                view=ft.AppView.WEB_BROWSER,
+                port=6969,
+                assets_dir=assets_dir,
+            )
+        else:
+            ft.app(target=main, assets_dir=assets_dir)
     except ImportError:
         console.print(
             "[red]GUI dependencies not installed. Please install with:[/red]"
-            "\n[yellow]pip install doudesu\[gui][/yellow]"
+            "\n[yellow]pip install doudesu\[gui][/yellow]"  # noqa: W605
         )
         sys.exit(1)
 
@@ -58,25 +60,24 @@ class DoujindesuApp:
         self.selected_result = None
         self.next_page_url = None
         self.previous_page_url = None
-        self.result_folder = "result"
+        self.result_folder = DEFAULT_SETTINGS["result_path"]
+        self.browser_mode = True
 
-        # Add theme state attributes
-        self.is_dark = True
-        self.theme_mode = ft.ThemeMode.DARK
+        self.is_dark = DEFAULT_SETTINGS["default_theme"] == "dark"
+        self.blur_thumbnails = DEFAULT_SETTINGS["blur_thumbnails"]
+        self.theme_mode = ft.ThemeMode.DARK if self.is_dark else ft.ThemeMode.LIGHT
 
         # Create result folder if it doesn't exist
         os.makedirs(self.result_folder, exist_ok=True)
 
-        # Initialize UI elements
         self.logo = ft.Image(
-            src=os.path.join(os.path.dirname(__file__), "assets", "logo.png"),
-            width=180,
-            height=70,
+            src="/images/logo.png" if self.is_dark else "/images/logo_light.png",
+            width=250,
+            height=250,
             fit=ft.ImageFit.CONTAIN,
             border_radius=ft.border_radius.all(12),
         )
 
-        # Modernize text field styling
         input_border = ft.InputBorder.UNDERLINE
         input_style = {
             "width": 300,
@@ -108,7 +109,6 @@ class DoujindesuApp:
             **input_style,
         )
 
-        # Modern button styling
         button_style = {
             "style": ft.ButtonStyle(
                 bgcolor={
@@ -116,7 +116,7 @@ class DoujindesuApp:
                     ft.MaterialState.HOVERED: ft.colors.BLUE_800,
                 },
                 shape={
-                    ft.MaterialState.DEFAULT: ft.RoundedRectangleBorder(radius=8),
+                    ft.MaterialState.DEFAULT: ft.RoundedRectangleBorder(radius=50),
                 },
                 padding=ft.padding.all(20),
                 animation_duration=200,
@@ -181,7 +181,6 @@ class DoujindesuApp:
             **button_style,
         )
 
-        # Update navigation rail styling
         self.nav_rail = ft.NavigationRail(
             destinations=[
                 ft.NavigationRailDestination(
@@ -199,25 +198,42 @@ class DoujindesuApp:
             on_change=self.handle_option_change,
             min_width=80,
             min_extended_width=180,
-            leading=ft.IconButton(
-                icon=ft.icons.DARK_MODE,
-                selected_icon=ft.icons.LIGHT_MODE,
-                icon_color=ft.colors.BLUE_400,
-                selected=True,
-                on_click=self.toggle_theme,
-                tooltip="Toggle theme",
-                style=ft.ButtonStyle(
-                    shape={
-                        ft.MaterialState.DEFAULT: ft.CircleBorder(),
-                    },
-                ),
+            leading=ft.Column(
+                [
+                    ft.IconButton(
+                        icon=ft.icons.DARK_MODE,
+                        selected_icon=ft.icons.LIGHT_MODE,
+                        icon_color=ft.colors.BLUE_400,
+                        selected=self.is_dark,
+                        on_click=self.toggle_theme,
+                        tooltip="Toggle theme",
+                        style=ft.ButtonStyle(
+                            shape={
+                                ft.MaterialState.DEFAULT: ft.CircleBorder(),
+                            },
+                        ),
+                    ),
+                    ft.IconButton(
+                        icon=ft.icons.BLUR_ON,
+                        selected_icon=ft.icons.BLUR_OFF,
+                        icon_color=ft.colors.BLUE_400,
+                        selected=self.blur_thumbnails,
+                        on_click=self.toggle_blur,
+                        tooltip="Toggle blur",
+                        style=ft.ButtonStyle(
+                            shape={
+                                ft.MaterialState.DEFAULT: ft.CircleBorder(),
+                            },
+                        ),
+                    ),
+                ],
+                spacing=0,
             ),
             bgcolor=ft.colors.SURFACE_VARIANT,
         )
 
         self.status_text = ft.Text(size=16, color=ft.colors.BLUE)
 
-        # Add download state flag
         self.is_downloading = False
 
         self.search_results = ft.ListView(
@@ -231,9 +247,7 @@ class DoujindesuApp:
         self.download_progress = ft.ProgressBar(visible=False)
         self.download_status = ft.Text(visible=False)
 
-        self.main_view = ft.Container(
-            content=self.build_main_view(), visible=True, expand=True
-        )
+        self.main_view = ft.Container(content=self.build_main_view(), visible=True, expand=True)
 
         self.search_results_view = ft.Container(
             content=ft.Column(
@@ -246,9 +260,7 @@ class DoujindesuApp:
                                 tooltip="Back to Search",
                                 on_click=self.show_main_view,
                             ),
-                            ft.Text(
-                                "Search Results", size=20, weight=ft.FontWeight.BOLD
-                            ),
+                            ft.Text("Search Results", size=20, weight=ft.FontWeight.BOLD),
                         ],
                         alignment=ft.MainAxisAlignment.START,
                     ),
@@ -368,39 +380,56 @@ class DoujindesuApp:
         self.download_container = ft.Container(
             content=ft.Column(
                 [
+                    ft.Row(
+                        [
+                            ft.Icon(ft.icons.DOWNLOAD, color=ft.colors.WHITE),
+                            ft.Text(
+                                "Downloading...",
+                                size=14,
+                                weight=ft.FontWeight.BOLD,
+                                color=ft.colors.WHITE,
+                            ),
+                        ],
+                        spacing=10,
+                    ),
                     ft.Text(
-                        "Downloading...",
-                        size=20,
-                        weight=ft.FontWeight.BOLD,
+                        "",  # Progress text
+                        size=12,
                         color=ft.colors.WHITE,
                     ),
-                    ft.ProgressRing(width=40, height=40, stroke_width=4),
-                    ft.Text(
-                        "",
-                        size=16,
-                        color=ft.colors.WHITE,
+                    ft.ProgressBar(
+                        width=200,
+                        height=4,
                     ),
-                    ft.ProgressBar(width=300),
                     ft.Text(
-                        "",
-                        size=14,
+                        "",  # Image progress
+                        size=12,
                         color=ft.colors.GREY_400,
                     ),
                 ],
                 horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                spacing=20,
+                spacing=10,
             ),
-            bgcolor=ft.colors.BLACK54,
-            padding=30,
-            border_radius=10,
+            bgcolor=ft.colors.with_opacity(0.9, ft.colors.BLACK),
+            padding=15,
+            border_radius=8,
+            width=250,
+            shadow=ft.BoxShadow(
+                spread_radius=1,
+                blur_radius=10,
+                color=ft.colors.with_opacity(0.3, ft.colors.BLACK),
+                offset=ft.Offset(0, 2),
+            ),
             visible=False,
+            right=20,
+            bottom=20,
+            left=None,
+            top=None,
         )
 
     def handle_previous(self, e):
         if self.previous_page_url:
-            self.loading_animation.content.controls[
-                1
-            ].value = "Loading previous page..."
+            self.loading_animation.content.controls[1].value = "Loading previous page..."
             self.loading_animation.visible = True
             self.loading_animation.update()
 
@@ -432,9 +461,7 @@ class DoujindesuApp:
 
     def update_search_results(self):
         if self.results:
-            self.search_results.controls = [
-                self.create_result_control(result) for result in self.results
-            ]
+            self.search_results.controls = [self.create_result_control(result) for result in self.results]
             self.status_text.value = f"Found {len(self.results)} result(s):"
         else:
             self.status_text.value = "No results found."
@@ -460,19 +487,33 @@ class DoujindesuApp:
 
     def handle_option_change(self, e):
         if self.nav_rail.selected_index == 0:  # Search by Keyword
-            self.main_view.visible = True
-            self.url_download_view.visible = False
-            self.search_results_view.visible = False
+            # Reset all views first
             self.details_view.visible = False
+            self.search_results_view.visible = False
+            self.url_download_view.visible = False
+            self.main_view.visible = True
+
+            # Reset search-related elements
             self.search_query.visible = True
             self.url_input.visible = False
             self.search_button.visible = True
             self.download_button.visible = False
+
+            # Clear previous search results if any
+            self.search_results.controls = []
+            self.results = []
+            self.next_page_url = None
+            self.previous_page_url = None
+            self.selected_result = None
+
         else:  # Download by URL
+            # Reset all views first
+            self.details_view.visible = False
+            self.search_results_view.visible = False
             self.main_view.visible = False
             self.url_download_view.visible = True
-            self.search_results_view.visible = False
-            self.details_view.visible = False
+
+            # Reset URL-related elements
             self.search_query.visible = False
             self.url_input.visible = True
             self.search_button.visible = False
@@ -481,28 +522,49 @@ class DoujindesuApp:
         self.page.update()
 
     def create_result_control(self, result: Result):
-        # Get color based on type
-        type_color = (
-            ft.colors.BLUE_700
-            if result.type.lower() == "doujinshi"
-            else ft.colors.GREEN_700
+        type_color = ft.colors.BLUE_700 if result.type.lower() == "doujinshi" else ft.colors.GREEN_700
+        title_color = ft.colors.WHITE if self.theme_mode == ft.ThemeMode.DARK else ft.colors.GREY_800
+
+        # Create a stack with blurred overlay
+        image_stack = ft.Stack(
+            [
+                ft.Image(
+                    result.thumbnail,
+                    width=120,
+                    height=180,
+                    fit=ft.ImageFit.COVER,
+                    border_radius=ft.border_radius.all(8),
+                ),
+                ft.Container(
+                    width=120,
+                    height=180,
+                    blur=10 if self.blur_thumbnails else 0,
+                    bgcolor=ft.colors.with_opacity(0.3 if self.blur_thumbnails else 0, ft.colors.BLACK),
+                    border_radius=ft.border_radius.all(8),
+                    animate=ft.animation.Animation(300, "easeOut"),
+                    visible=self.blur_thumbnails,
+                ),
+            ]
         )
-        title_color = (
-            ft.colors.WHITE
-            if self.theme_mode == ft.ThemeMode.DARK
-            else ft.colors.GREY_800
+
+        image_container = ft.Container(
+            content=image_stack,
+            clip_behavior=ft.ClipBehavior.ANTI_ALIAS,
+            border_radius=ft.border_radius.all(8),
+            on_hover=lambda e: self.handle_image_hover(e),
+            on_click=lambda e: self.handle_image_click(e),
         )
+
+        def copy_url(e):
+            self.page.set_clipboard(result.url)
+            self.snackbar.bgcolor = ft.colors.GREEN_700
+            self.snackbar.content = ft.Text("URL copied to clipboard!", color=ft.colors.WHITE)
+            self.page.show_snack_bar(self.snackbar)
 
         card = ft.Container(
             content=ft.Row(
                 [
-                    ft.Image(
-                        result.thumbnail,
-                        width=120,
-                        height=180,
-                        fit=ft.ImageFit.COVER,
-                        border_radius=ft.border_radius.all(8),
-                    ),
+                    image_container,
                     ft.Column(
                         [
                             ft.Text(
@@ -546,10 +608,10 @@ class DoujindesuApp:
                         expand=True,
                     ),
                     ft.IconButton(
-                        icon=ft.icons.DOWNLOAD,
+                        icon=ft.icons.LINK,
                         icon_color=ft.colors.BLUE_400,
-                        tooltip="Download",
-                        on_click=lambda e: self.download_manga(e, result.url),
+                        tooltip="Copy URL",
+                        on_click=copy_url,
                     ),
                 ],
                 spacing=20,
@@ -570,22 +632,51 @@ class DoujindesuApp:
     def show_details(self, e, result: Result):
         self.selected_result = result
 
-        # Get detailed information using get_details
         details = Doujindesu(result.url).get_details()
 
         if not details:
             self.snackbar.bgcolor = ft.colors.RED_700
-            self.snackbar.content = ft.Text(
-                "Failed to load details!", color=ft.colors.WHITE
-            )
+            self.snackbar.content = ft.Text("Failed to load details!", color=ft.colors.WHITE)
             self.page.show_snack_bar(self.snackbar)
             return
 
         # Get color based on type
-        type_color = (
-            ft.colors.BLUE_700
-            if details.type.lower() == "doujinshi"
-            else ft.colors.GREEN_700
+        type_color = ft.colors.BLUE_700 if details.type.lower() == "doujinshi" else ft.colors.GREEN_700
+
+        # Create image stack with blur effect for details thumbnail
+        details_image_stack = ft.Stack(
+            [
+                ft.Image(
+                    src=details.thumbnail,
+                    width=250,
+                    height=350,
+                    fit=ft.ImageFit.COVER,
+                    border_radius=ft.border_radius.all(12),
+                ),
+                ft.Container(
+                    width=250,
+                    height=350,
+                    blur=10 if self.blur_thumbnails else 0,
+                    bgcolor=ft.colors.with_opacity(0.3 if self.blur_thumbnails else 0, ft.colors.BLACK),
+                    border_radius=ft.border_radius.all(12),
+                    animate=ft.animation.Animation(300, "easeOut"),
+                    visible=self.blur_thumbnails,
+                ),
+            ]
+        )
+
+        details_image_container = ft.Container(
+            content=details_image_stack,
+            clip_behavior=ft.ClipBehavior.ANTI_ALIAS,
+            border_radius=ft.border_radius.all(12),
+            on_hover=lambda e: self.handle_image_hover(e),
+            on_click=lambda e: self.handle_image_click(e),
+            shadow=ft.BoxShadow(
+                spread_radius=1,
+                blur_radius=10,
+                color=ft.colors.with_opacity(0.3, ft.colors.BLACK),
+            ),
+            animate=ft.animation.Animation(300, "easeOut"),
         )
 
         # Create chapter dropdown if multiple chapters exist
@@ -598,23 +689,210 @@ class DoujindesuApp:
                 focused_color=ft.colors.BLUE_700,
                 text_size=16,
                 content_padding=15,
-                options=[
-                    ft.dropdown.Option(f"Chapter {i+1}")
-                    for i in range(len(details.chapter_urls))
-                ],
+                options=[ft.dropdown.Option(f"Chapter {i+1}") for i in range(len(details.chapter_urls))],
                 width=200,
             )
 
         # Get text color based on theme
-        text_color = (
-            ft.colors.GREY_800
-            if self.theme_mode == ft.ThemeMode.LIGHT
-            else ft.colors.GREY_400
+        text_color = ft.colors.GREY_800 if self.theme_mode == ft.ThemeMode.LIGHT else ft.colors.GREY_400
+
+        def handle_download_click(e):
+            if len(details.chapter_urls) == 1:
+                self.download_manga(e, result.url, all_chapters=True)
+                return
+
+            def close_dialog(e):
+                dialog.open = False
+                self.page.update()
+
+            def handle_download_choice(e, choice: str):
+                dialog.open = False
+                self.page.update()
+
+                if choice == "single" and chapter_selector.value:
+                    chapter_index = int(chapter_selector.value.split()[-1])
+                    self.download_manga(e, result.url, chapter_index=str(chapter_index))
+                elif choice == "range":
+                    try:
+                        start = int(start_chapter.value or "1")
+                        end = int(end_chapter.value or str(len(details.chapter_urls)))
+                        if 1 <= start <= end <= len(details.chapter_urls):
+                            self.download_manga(e, result.url, chapter_range=(start, end))
+                        else:
+                            self.snackbar.bgcolor = ft.colors.RED_700
+                            self.snackbar.content = ft.Text(
+                                f"Invalid range! Please enter numbers between 1 and {len(details.chapter_urls)}",
+                                color=ft.colors.WHITE,
+                            )
+                            self.page.show_snack_bar(self.snackbar)
+                    except ValueError:
+                        self.snackbar.bgcolor = ft.colors.RED_700
+                        self.snackbar.content = ft.Text(
+                            "Please enter valid numbers for chapter range!",
+                            color=ft.colors.WHITE,
+                        )
+                        self.page.show_snack_bar(self.snackbar)
+                elif choice == "all":
+                    self.download_manga(e, result.url, all_chapters=True)
+
+            # Create range download dialog
+            start_chapter = ft.TextField(
+                label="Start Chapter",
+                hint_text="e.g. 1",
+                border=ft.InputBorder.UNDERLINE,
+                width=150,
+                keyboard_type=ft.KeyboardType.NUMBER,
+            )
+
+            end_chapter = ft.TextField(
+                label="End Chapter",
+                hint_text=f"e.g. {len(details.chapter_urls)}",
+                border=ft.InputBorder.UNDERLINE,
+                width=150,
+                keyboard_type=ft.KeyboardType.NUMBER,
+            )
+
+            # Create dialog content based on chapter count
+            dialog_content = [
+                ft.Text(f"Found {len(details.chapter_urls)} chapters", size=16),
+                ft.Divider(),
+            ]
+
+            if len(details.chapter_urls) > 1:
+                dialog_content.extend(
+                    [
+                        ft.Text("Download Single Chapter:", size=16),
+                        chapter_selector,
+                        ft.Divider(),
+                        ft.Text("Download Range:", size=16),
+                        ft.Row(
+                            [start_chapter, ft.Text("to"), end_chapter],
+                            alignment=ft.MainAxisAlignment.CENTER,
+                        ),
+                    ]
+                )
+
+            # Create buttons based on chapter count
+            download_buttons = []
+            if len(details.chapter_urls) > 1:
+                download_buttons.extend(
+                    [
+                        ft.ElevatedButton(
+                            content=ft.Row(
+                                [
+                                    ft.Icon(ft.icons.DOWNLOAD, size=20),
+                                    ft.Text("Download Single", size=16),
+                                ],
+                                spacing=8,
+                            ),
+                            style=ft.ButtonStyle(
+                                bgcolor=ft.colors.BLUE_700,
+                                color=ft.colors.WHITE,
+                            ),
+                            on_click=lambda e: handle_download_choice(e, "single"),
+                        ),
+                        ft.ElevatedButton(
+                            content=ft.Row(
+                                [
+                                    ft.Icon(ft.icons.DOWNLOAD_FOR_OFFLINE, size=20),
+                                    ft.Text("Download Range", size=16),
+                                ],
+                                spacing=8,
+                            ),
+                            style=ft.ButtonStyle(
+                                bgcolor=ft.colors.GREEN_700,
+                                color=ft.colors.WHITE,
+                            ),
+                            on_click=lambda e: handle_download_choice(e, "range"),
+                        ),
+                    ]
+                )
+
+            download_buttons.append(
+                ft.ElevatedButton(
+                    content=ft.Row(
+                        [
+                            ft.Icon(ft.icons.DOWNLOAD_FOR_OFFLINE, size=20),
+                            ft.Text(
+                                "Download All" if len(details.chapter_urls) > 1 else "Download",
+                                size=16,
+                            ),
+                        ],
+                        spacing=8,
+                    ),
+                    style=ft.ButtonStyle(
+                        bgcolor=ft.colors.ORANGE_700,
+                        color=ft.colors.WHITE,
+                    ),
+                    on_click=lambda e: handle_download_choice(e, "all"),
+                )
+            )
+
+            dialog_content.append(
+                ft.Row(
+                    download_buttons,
+                    alignment=ft.MainAxisAlignment.CENTER,
+                    spacing=10,
+                    wrap=True,
+                )
+            )
+
+            dialog = ft.AlertDialog(
+                modal=True,
+                title=ft.Text(
+                    f"Download {details.name}",
+                    size=20,
+                    weight=ft.FontWeight.BOLD,
+                ),
+                content=ft.Container(
+                    content=ft.Column(
+                        dialog_content,
+                        spacing=20,
+                        scroll=ft.ScrollMode.AUTO,
+                        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                    ),
+                    width=min(400, self.page.width * 0.8),
+                    height=min(600, self.page.height * 0.8),
+                    padding=20,
+                ),
+                actions=[
+                    ft.TextButton("Cancel", on_click=close_dialog),
+                ],
+                actions_alignment=ft.MainAxisAlignment.END,
+                content_padding=10,
+                inset_padding=20,
+            )
+
+            self.page.dialog = dialog
+            dialog.open = True
+            self.page.update()
+
+        # Single download button at the bottom
+        ft.Container(
+            content=ft.Row(
+                [
+                    ft.ElevatedButton(
+                        content=ft.Row(
+                            [
+                                ft.Icon(ft.icons.DOWNLOAD, size=20),
+                                ft.Text("Download", size=16, weight=ft.FontWeight.W_500),
+                            ],
+                            spacing=8,
+                        ),
+                        style=ft.ButtonStyle(
+                            bgcolor=ft.colors.BLUE_700,
+                            color=ft.colors.WHITE,
+                        ),
+                        on_click=handle_download_click,
+                    ),
+                ],
+                alignment=ft.MainAxisAlignment.CENTER,
+            ),
+            padding=20,
         )
 
         details_content = ft.Column(
             [
-                # Back button at top
                 ft.Row(
                     [
                         ft.IconButton(
@@ -626,29 +904,12 @@ class DoujindesuApp:
                     ],
                     alignment=ft.MainAxisAlignment.START,
                 ),
-                # Main content
                 ft.ResponsiveRow(
                     [
                         # Left column - Image
                         ft.Column(
                             [
-                                ft.Container(
-                                    content=ft.Image(
-                                        src=details.thumbnail,
-                                        width=250,
-                                        height=350,
-                                        fit=ft.ImageFit.COVER,
-                                        border_radius=ft.border_radius.all(12),
-                                    ),
-                                    shadow=ft.BoxShadow(
-                                        spread_radius=1,
-                                        blur_radius=10,
-                                        color=ft.colors.with_opacity(
-                                            0.3, ft.colors.BLACK
-                                        ),
-                                    ),
-                                    animate=ft.animation.Animation(300, "easeOut"),
-                                ),
+                                details_image_container,
                             ],
                             col={"sm": 12, "md": 4},
                             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
@@ -663,30 +924,28 @@ class DoujindesuApp:
                                                 details.name,
                                                 size=24,
                                                 weight=ft.FontWeight.BOLD,
-                                                color=text_color,  # Dynamic color
+                                                color=text_color,
                                             ),
-                                            ft.Divider(
-                                                height=2, color=ft.colors.BLUE_400
-                                            ),
+                                            ft.Divider(height=2, color=ft.colors.BLUE_400),
                                             ft.Text(
                                                 f"Series: {details.series}",
                                                 size=16,
-                                                color=text_color,  # Dynamic color
+                                                color=text_color,
                                             ),
                                             ft.Text(
                                                 f"Author: {details.author}",
                                                 size=16,
-                                                color=text_color,  # Dynamic color
+                                                color=text_color,
                                             ),
                                             ft.Text(
                                                 f"Chapters: {len(details.chapter_urls)}",
                                                 size=16,
-                                                color=text_color,  # Dynamic color
+                                                color=text_color,
                                             ),
                                             ft.Text(
                                                 f"Genre: {', '.join(details.genre)}",
                                                 size=16,
-                                                color=text_color,  # Dynamic color
+                                                color=text_color,
                                             ),
                                             ft.Row(
                                                 [
@@ -758,12 +1017,8 @@ class DoujindesuApp:
                                         begin=ft.alignment.top_center,
                                         end=ft.alignment.bottom_center,
                                         colors=[
-                                            ft.colors.with_opacity(
-                                                0.05, ft.colors.WHITE
-                                            ),
-                                            ft.colors.with_opacity(
-                                                0.02, ft.colors.WHITE
-                                            ),
+                                            ft.colors.with_opacity(0.05, ft.colors.WHITE),
+                                            ft.colors.with_opacity(0.02, ft.colors.WHITE),
                                         ],
                                     ),
                                 ),
@@ -774,83 +1029,32 @@ class DoujindesuApp:
                     ],
                     alignment=ft.MainAxisAlignment.CENTER,
                 ),
-                # Download controls
+                # Single download button at the bottom
                 ft.Container(
-                    content=ft.Column(
+                    content=ft.Row(
                         [
-                            chapter_selector if chapter_selector else ft.Container(),
-                            ft.Row(
-                                [
-                                    ft.ElevatedButton(
-                                        content=ft.Row(
-                                            [
-                                                ft.Icon(
-                                                    ft.icons.DOWNLOAD_FOR_OFFLINE,
-                                                    size=20,
-                                                ),
-                                                ft.Text(
-                                                    "Download All"
-                                                    if len(details.chapter_urls) > 1
-                                                    else "Download",
-                                                    size=16,
-                                                    weight=ft.FontWeight.W_500,
-                                                ),
-                                            ],
-                                            tight=True,
-                                            spacing=8,
+                            ft.ElevatedButton(
+                                content=ft.Row(
+                                    [
+                                        ft.Icon(ft.icons.DOWNLOAD, size=20),
+                                        ft.Text(
+                                            "Download",
+                                            size=16,
+                                            weight=ft.FontWeight.W_500,
                                         ),
-                                        style=ft.ButtonStyle(
-                                            bgcolor={
-                                                ft.MaterialState.DEFAULT: ft.colors.BLUE_700,
-                                                ft.MaterialState.HOVERED: ft.colors.BLUE_800,
-                                            },
-                                            padding=ft.padding.all(20),
-                                        ),
-                                        on_click=lambda e: self.download_manga(
-                                            e, result.url, all_chapters=True
-                                        ),
-                                    ),
-                                    ft.ElevatedButton(
-                                        content=ft.Row(
-                                            [
-                                                ft.Icon(ft.icons.DOWNLOAD, size=20),
-                                                ft.Text(
-                                                    "Download Selected",
-                                                    size=16,
-                                                    weight=ft.FontWeight.W_500,
-                                                ),
-                                            ],
-                                            tight=True,
-                                            spacing=8,
-                                        ),
-                                        style=ft.ButtonStyle(
-                                            bgcolor={
-                                                ft.MaterialState.DEFAULT: ft.colors.GREEN_700,
-                                                ft.MaterialState.HOVERED: ft.colors.GREEN_800,
-                                            },
-                                            padding=ft.padding.all(20),
-                                        ),
-                                        on_click=lambda e: self.download_manga(
-                                            e,
-                                            result.url,
-                                            chapter_index=chapter_selector.value.split()[
-                                                -1
-                                            ]
-                                            if chapter_selector
-                                            else None,
-                                        ),
-                                        visible=chapter_selector is not None,
-                                    ),
-                                ],
-                                alignment=ft.MainAxisAlignment.CENTER,
-                                spacing=20,
+                                    ],
+                                    spacing=8,
+                                ),
+                                style=ft.ButtonStyle(
+                                    bgcolor=ft.colors.BLUE_700,
+                                    color=ft.colors.WHITE,
+                                ),
+                                on_click=handle_download_click,
                             ),
                         ],
-                        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                        spacing=20,
+                        alignment=ft.MainAxisAlignment.CENTER,
                     ),
-                    padding=30,
-                    border_radius=12,
+                    padding=20,
                 ),
             ],
             spacing=30,
@@ -864,18 +1068,27 @@ class DoujindesuApp:
         self.search_results.update()
 
     def show_search_results(self, e):
+        """Show search results view and hide details view."""
         self.details_view.visible = False
+        self.search_results_view.visible = True
         self.search_results.visible = True
-        self.details_view.update()
-        self.search_results.update()
+        self.page.update()
 
     def convert_images_to_pdf(self, images, title):
-        # Create full path for the PDF file
-        pdf_path = os.path.join(self.result_folder, title)
+        def sanitize_filename(filename):
+            invalid_chars = '<>:"/\\|?*'
+            for char in invalid_chars:
+                filename = filename.replace(char, "_")
+            filename = filename.strip(". ")
+            return filename
 
-        ImageToPDFConverter(images, output_pdf_file=pdf_path).convert_images_to_pdf(
-            images, pdf_path
-        )
+        safe_title = sanitize_filename(title)
+        if not safe_title.lower().endswith(".pdf"):
+            safe_title += ".pdf"
+
+        pdf_path = os.path.join(self.result_folder, safe_title)
+
+        ImageToPDFConverter(images, output_pdf_file=pdf_path).convert_images_to_pdf(images, pdf_path)
         self.status_text.value = f"PDF created: {pdf_path}"
         self.status_text.update()
 
@@ -894,11 +1107,9 @@ class DoujindesuApp:
             search_result = Doujindesu.search(query)
             self.results = search_result.results if search_result else []
             self.next_page_url = search_result.next_page_url if search_result else None
-            self.previous_page_url = (
-                search_result.previous_page_url if search_result else None
-            )
+            self.previous_page_url = search_result.previous_page_url if search_result else None
             self.update_search_results()
-            self.show_search_results_view()  # Switch to search results view
+            self.show_search_results_view()
         finally:
             self.loading_animation.visible = False
             self.loading_animation.update()
@@ -926,30 +1137,26 @@ class DoujindesuApp:
                 self.page.show_snack_bar(self.snackbar)
                 return
 
-            # If only one chapter, ask for confirmation
             if len(chapters) == 1:
-                def handle_confirm(e):
-                    dialog.open = False
-                    self.page.update()
-                    self.download_manga(e, url, all_chapters=True)
-
-                dialog = ft.AlertDialog(
-                    modal=True,
-                    title=ft.Text("Confirm Download"),
-                    content=ft.Text(f"Download {details.name}?"),
-                    actions=[
-                        ft.TextButton("Cancel", on_click=lambda e: setattr(dialog, 'open', False)),
-                        ft.TextButton("Download", on_click=handle_confirm),
-                    ],
-                    actions_alignment=ft.MainAxisAlignment.END,
-                )
-
-                self.page.dialog = dialog
-                dialog.open = True
-                self.page.update()
+                self.download_manga(e, url, all_chapters=True)
                 return
 
-            # Create chapter selection dialog
+            start_chapter = ft.TextField(
+                label="Start Chapter",
+                hint_text="e.g. 1",
+                border=ft.InputBorder.UNDERLINE,
+                width=150,
+                keyboard_type=ft.KeyboardType.NUMBER,
+            )
+
+            end_chapter = ft.TextField(
+                label="End Chapter",
+                hint_text=f"e.g. {len(chapters)}",
+                border=ft.InputBorder.UNDERLINE,
+                width=150,
+                keyboard_type=ft.KeyboardType.NUMBER,
+            )
+
             chapter_selector = ft.Dropdown(
                 label="Select Chapter",
                 border=ft.InputBorder.UNDERLINE,
@@ -957,10 +1164,7 @@ class DoujindesuApp:
                 focused_color=ft.colors.BLUE_700,
                 text_size=16,
                 content_padding=15,
-                options=[
-                    ft.dropdown.Option(f"Chapter {i+1}")
-                    for i in range(len(chapters))
-                ],
+                options=[ft.dropdown.Option(f"Chapter {i+1}") for i in range(len(chapters))],
                 width=200,
             )
 
@@ -971,62 +1175,144 @@ class DoujindesuApp:
             def handle_download_choice(e, choice: str):
                 dialog.open = False
                 self.page.update()
-                
+
                 if choice == "single" and chapter_selector.value:
                     chapter_index = int(chapter_selector.value.split()[-1])
                     self.download_manga(e, url, chapter_index=str(chapter_index))
+                elif choice == "range":
+                    try:
+                        start = int(start_chapter.value or "1")
+                        end = int(end_chapter.value or str(len(chapters)))
+                        if 1 <= start <= end <= len(chapters):
+                            self.download_manga(e, url, chapter_range=(start, end))
+                        else:
+                            self.snackbar.bgcolor = ft.colors.RED_700
+                            self.snackbar.content = ft.Text(
+                                f"Invalid range! Please enter numbers between 1 and {len(chapters)}",
+                                color=ft.colors.WHITE,
+                            )
+                            self.page.show_snack_bar(self.snackbar)
+                    except ValueError:
+                        self.snackbar.bgcolor = ft.colors.RED_700
+                        self.snackbar.content = ft.Text(
+                            "Please enter valid numbers for chapter range!",
+                            color=ft.colors.WHITE,
+                        )
+                        self.page.show_snack_bar(self.snackbar)
                 elif choice == "all":
                     self.download_manga(e, url, all_chapters=True)
 
+            # Create dialog content based on chapter count
+            dialog_content = [
+                ft.Text(f"Found {len(chapters)} chapters", size=16),
+                ft.Divider(),
+            ]
+
+            # Only show chapter selector and range options if multiple chapters exist
+            if len(chapters) > 1:
+                dialog_content.extend(
+                    [
+                        ft.Text("Download Single Chapter:", size=16),
+                        chapter_selector,
+                        ft.Divider(),
+                        ft.Text("Download Range:", size=16),
+                        ft.Row(
+                            [start_chapter, ft.Text("to"), end_chapter],
+                            alignment=ft.MainAxisAlignment.CENTER,
+                        ),
+                    ]
+                )
+
+            # Create buttons based on chapter count
+            download_buttons = []
+            if len(chapters) > 1:
+                download_buttons.extend(
+                    [
+                        ft.ElevatedButton(
+                            content=ft.Row(
+                                [
+                                    ft.Icon(ft.icons.DOWNLOAD, size=20),
+                                    ft.Text("Download Single", size=16),
+                                ],
+                                spacing=8,
+                            ),
+                            style=ft.ButtonStyle(
+                                bgcolor=ft.colors.BLUE_700,
+                                color=ft.colors.WHITE,
+                            ),
+                            on_click=lambda e: handle_download_choice(e, "single"),
+                        ),
+                        ft.ElevatedButton(
+                            content=ft.Row(
+                                [
+                                    ft.Icon(ft.icons.DOWNLOAD_FOR_OFFLINE, size=20),
+                                    ft.Text("Download Range", size=16),
+                                ],
+                                spacing=8,
+                            ),
+                            style=ft.ButtonStyle(
+                                bgcolor=ft.colors.GREEN_700,
+                                color=ft.colors.WHITE,
+                            ),
+                            on_click=lambda e: handle_download_choice(e, "range"),
+                        ),
+                    ]
+                )
+
+            # Always add Download All button
+            download_buttons.append(
+                ft.ElevatedButton(
+                    content=ft.Row(
+                        [
+                            ft.Icon(ft.icons.DOWNLOAD_FOR_OFFLINE, size=20),
+                            ft.Text(
+                                "Download All" if len(chapters) > 1 else "Download",
+                                size=16,
+                            ),
+                        ],
+                        spacing=8,
+                    ),
+                    style=ft.ButtonStyle(
+                        bgcolor=ft.colors.ORANGE_700,
+                        color=ft.colors.WHITE,
+                    ),
+                    on_click=lambda e: handle_download_choice(e, "all"),
+                )
+            )
+
+            dialog_content.append(
+                ft.Row(
+                    download_buttons,
+                    alignment=ft.MainAxisAlignment.CENTER,
+                    spacing=10,
+                    wrap=True,
+                )
+            )
+
             dialog = ft.AlertDialog(
                 modal=True,
-                title=ft.Text(f"Download Options for {details.name}", size=20, weight=ft.FontWeight.BOLD),
-                content=ft.Column(
-                    [
-                        ft.Text(f"Found {len(chapters)} chapters", size=16),
-                        ft.Divider(),
-                        chapter_selector,
-                        ft.Row(
-                            [
-                                ft.ElevatedButton(
-                                    content=ft.Row(
-                                        [
-                                            ft.Icon(ft.icons.DOWNLOAD, size=20),
-                                            ft.Text("Download Selected", size=16),
-                                        ],
-                                        spacing=8,
-                                    ),
-                                    style=ft.ButtonStyle(
-                                        bgcolor=ft.colors.BLUE_700,
-                                        color=ft.colors.WHITE,
-                                    ),
-                                    on_click=lambda e: handle_download_choice(e, "single"),
-                                ),
-                                ft.ElevatedButton(
-                                    content=ft.Row(
-                                        [
-                                            ft.Icon(ft.icons.DOWNLOAD_FOR_OFFLINE, size=20),
-                                            ft.Text("Download All", size=16),
-                                        ],
-                                        spacing=8,
-                                    ),
-                                    style=ft.ButtonStyle(
-                                        bgcolor=ft.colors.GREEN_700,
-                                        color=ft.colors.WHITE,
-                                    ),
-                                    on_click=lambda e: handle_download_choice(e, "all"),
-                                ),
-                            ],
-                            alignment=ft.MainAxisAlignment.END,
-                            spacing=10,
-                        ),
-                    ],
-                    spacing=20,
-                    width=400,
+                title=ft.Text(
+                    f"Download {details.name}",
+                    size=20,
+                    weight=ft.FontWeight.BOLD,
+                ),
+                content=ft.Container(
+                    content=ft.Column(
+                        dialog_content,
+                        spacing=20,
+                        scroll=ft.ScrollMode.AUTO,
+                        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                    ),
+                    width=min(400, self.page.width * 0.8),
+                    height=min(600, self.page.height * 0.8),
+                    padding=20,
                 ),
                 actions=[
                     ft.TextButton("Cancel", on_click=close_dialog),
                 ],
+                actions_alignment=ft.MainAxisAlignment.END,
+                content_padding=10,
+                inset_padding=20,
             )
 
             self.page.dialog = dialog
@@ -1035,34 +1321,31 @@ class DoujindesuApp:
 
         except Exception as e:
             self.snackbar.bgcolor = ft.colors.RED_700
-            self.snackbar.content = ft.Text(f"Error: {str(e)}", color=ft.colors.WHITE)
+            self.snackbar.content = ft.Text(f"Error: {e!s}", color=ft.colors.WHITE)
             self.page.show_snack_bar(self.snackbar)
 
     def download_manga(
         self,
         e,
         url: str,
-        chapter_index: Optional[str] = None,
+        chapter_index: str | None = None,
+        chapter_range: tuple[int, int] | None = None,
         all_chapters: bool = False,
     ):
         if self.is_downloading:
             self.snackbar.bgcolor = ft.colors.ORANGE_700
-            self.snackbar.content = ft.Text(
-                "Download already in progress!", color=ft.colors.WHITE
-            )
+            self.snackbar.content = ft.Text("Download already in progress!", color=ft.colors.WHITE)
             self.page.show_snack_bar(self.snackbar)
             return
 
         self.is_downloading = True
-
-        # Disable all download buttons
         self.download_button.disabled = True
         self.download_button.update()
 
-        # Show download progress container
-        progress_text = self.download_container.content.controls[2]
-        progress_bar = self.download_container.content.controls[3]
-        image_progress = self.download_container.content.controls[4]
+        # Get correct control indices based on our container structure
+        progress_text = self.download_container.content.controls[1]  # Changed from 2
+        progress_bar = self.download_container.content.controls[2]  # Changed from 3
+        image_progress = self.download_container.content.controls[3]  # Changed from 4
 
         self.download_container.visible = True
         self.download_container.update()
@@ -1070,6 +1353,9 @@ class DoujindesuApp:
         try:
             manga = Doujindesu(url)
             chapters = manga.get_all_chapters()
+
+            self.download_container.visible = True
+            self.download_container.update()
 
             if chapter_index:
                 # Download specific chapter
@@ -1087,8 +1373,32 @@ class DoujindesuApp:
                     image_progress.update()
                     title = "-".join(manga.soup.title.text.split("-")[:-1]).strip()
                     self.convert_images_to_pdf(images, f"{title}.pdf")
-                    progress_bar.value = 1
-                    progress_bar.update()
+
+                progress_bar.value = 1
+                progress_bar.update()
+
+            elif chapter_range:
+                # Download range of chapters
+                start, end = chapter_range
+                total_chapters = end - start + 1
+                progress_bar.value = 0
+                progress_bar.max = total_chapters
+                progress_bar.update()
+
+                for idx, chapter_num in enumerate(range(start - 1, end), 1):
+                    progress_text.value = f"Downloading Chapter {chapter_num + 1}/{end}"
+                    progress_text.update()
+
+                    manga.url = chapters[chapter_num]
+                    images = manga.get_all_images()
+                    if images:
+                        image_progress.value = f"Processing {len(images)} images"
+                        image_progress.update()
+                        title = "-".join(manga.soup.title.text.split("-")[:-1]).strip()
+                        self.convert_images_to_pdf(images, f"{title}.pdf")
+
+                        progress_bar.value = idx
+                        progress_bar.update()
 
             elif all_chapters:
                 # Download all chapters
@@ -1108,18 +1418,17 @@ class DoujindesuApp:
                         image_progress.update()
                         title = "-".join(manga.soup.title.text.split("-")[:-1]).strip()
                         self.convert_images_to_pdf(images, f"{title}.pdf")
+
                         progress_bar.value = idx
                         progress_bar.update()
 
             self.snackbar.bgcolor = ft.colors.GREEN_700
-            self.snackbar.content = ft.Text(
-                "Download completed!", color=ft.colors.WHITE
-            )
+            self.snackbar.content = ft.Text("Download completed!", color=ft.colors.WHITE)
             self.page.show_snack_bar(self.snackbar)
 
         except Exception as e:
             self.snackbar.bgcolor = ft.colors.RED_700
-            self.snackbar.content = ft.Text(f"Error: {str(e)}", color=ft.colors.WHITE)
+            self.snackbar.content = ft.Text(f"Error: {e!s}", color=ft.colors.WHITE)
             self.page.show_snack_bar(self.snackbar)
 
         finally:
@@ -1127,17 +1436,19 @@ class DoujindesuApp:
             self.download_button.disabled = False
             self.download_button.update()
 
-            # Re-enable search result download icons
+            # Update search results download icons
             if self.search_results.controls:
                 for result in self.search_results.controls:
                     download_icon = result.content.controls[-1]
                     download_icon.disabled = False
                     download_icon.update()
 
-            # Re-enable details view download button
+            # Update details view download button
             if self.details_view.visible and self.details_view.content:
-                buttons_row = self.details_view.content.controls[-1]
-                download_btn = buttons_row.controls[0]
+                # Get the download button from the last container in details_content
+                download_container = self.details_view.content.controls[-1]  # Container
+                download_row = download_container.content  # Row
+                download_btn = download_row.controls[0]  # Button
                 download_btn.disabled = False
                 download_btn.update()
 
@@ -1247,12 +1558,10 @@ class DoujindesuApp:
 
     def set_page(self, page):
         self.page = page
-        # Set window to maximized and initial theme
         self.page.window_maximized = True
-        self.page.theme_mode = "dark"  # Set initial theme
-        self.theme_mode = ft.ThemeMode.DARK  # Ensure theme_mode is synchronized
+        self.page.theme_mode = "dark"
+        self.theme_mode = ft.ThemeMode.DARK
 
-        # Ensure main view is visible initially
         self.main_view.visible = True
         self.url_download_view.visible = False
         self.search_results_view.visible = False
@@ -1267,13 +1576,9 @@ class DoujindesuApp:
         self.page.theme_mode = "dark" if self.is_dark else "light"
         self.page.update()
 
-    def display_search_results(self, results: List[Result]):
+    def display_search_results(self, results: list[Result]):
         # Get text color based on theme
-        text_color = (
-            ft.colors.GREY_800
-            if self.theme_mode == ft.ThemeMode.LIGHT
-            else ft.colors.GREY_400
-        )
+        text_color = ft.colors.GREY_800 if self.theme_mode == ft.ThemeMode.LIGHT else ft.colors.GREY_400
 
         results_list = []
         for result in results:
@@ -1297,22 +1602,22 @@ class DoujindesuApp:
                                                     result.name,
                                                     size=16,
                                                     weight=ft.FontWeight.BOLD,
-                                                    color=text_color,  # Dynamic color
+                                                    color=text_color,
                                                 ),
                                                 ft.Text(
                                                     f"Type: {result.type}",
                                                     size=14,
-                                                    color=text_color,  # Dynamic color
+                                                    color=text_color,
                                                 ),
                                                 ft.Text(
                                                     f"Score: {result.score}",
                                                     size=14,
-                                                    color=text_color,  # Dynamic color
+                                                    color=text_color,
                                                 ),
                                                 ft.Text(
                                                     f"Status: {result.status}",
                                                     size=14,
-                                                    color=text_color,  # Dynamic color
+                                                    color=text_color,
                                                 ),
                                             ],
                                             spacing=5,
@@ -1327,4 +1632,60 @@ class DoujindesuApp:
                     )
                 )
             )
-        # ... rest of the method
+
+    def handle_image_hover(self, e):
+        """Handle hover effect for manga thumbnails."""
+        overlay = e.control.content.controls[1]  # Get the overlay container
+        if e.data == "true":  # Mouse entered
+            overlay.blur = 0
+            overlay.bgcolor = ft.colors.with_opacity(0, ft.colors.BLACK)
+            overlay.visible = False
+        else:  # Mouse exited
+            overlay.blur = 10 if self.blur_thumbnails else 0
+            overlay.bgcolor = ft.colors.with_opacity(0.3 if self.blur_thumbnails else 0, ft.colors.BLACK)
+            overlay.visible = self.blur_thumbnails
+        overlay.update()
+
+    def handle_image_click(self, e):
+        """Handle click effect for manga thumbnails."""
+        overlay = e.control.content.controls[1]  # Get the overlay container
+        overlay.blur = 0
+        overlay.bgcolor = ft.colors.with_opacity(0, ft.colors.BLACK)
+        overlay.update()
+
+    def toggle_blur(self, e):
+        """Toggle blur effect on thumbnails."""
+        self.blur_thumbnails = not self.blur_thumbnails
+        e.control.selected = self.blur_thumbnails
+
+        # Update all thumbnails in search results
+        if self.search_results.controls:
+            for result in self.search_results.controls:
+                try:
+                    overlay = result.content.controls[0].content.controls[1]  # Get overlay container
+                    overlay.visible = self.blur_thumbnails
+                    overlay.blur = 10 if self.blur_thumbnails else 0
+                    overlay.bgcolor = ft.colors.with_opacity(0.3 if self.blur_thumbnails else 0, ft.colors.BLACK)
+                    overlay.update()
+                except (AttributeError, IndexError):
+                    continue
+
+        # Update details view if visible
+        if self.details_view.visible and self.details_view.content:
+            try:
+                # Navigate through the control hierarchy to find the image overlay
+                details_content = self.details_view.content
+                responsive_row = details_content.controls[1]  # Get the ResponsiveRow
+                image_column = responsive_row.controls[0]  # Get the first column (image column)
+                image_container = image_column.controls[0]  # Get the image container
+                image_stack = image_container.content  # Get the Stack
+                overlay = image_stack.controls[1]
+
+                overlay.visible = self.blur_thumbnails
+                overlay.blur = 10 if self.blur_thumbnails else 0
+                overlay.bgcolor = ft.colors.with_opacity(0.3 if self.blur_thumbnails else 0, ft.colors.BLACK)
+                overlay.update()
+            except (AttributeError, IndexError):
+                pass
+
+        self.page.update()

@@ -1,11 +1,13 @@
-# Doudesu
+<div align="center">
+    <img src="./doudesu/assets/images/logo.png" alt="logo" width="200">
+</div>
 
 A powerful manga downloader and Python wrapper for doujindesu.tv with both CLI and GUI interfaces.
 
-![Python Version](https://img.shields.io/pypi/pyversions/doudesu)
-![License](https://img.shields.io/pypi/l/doudesu)
-![PyPI Version](https://img.shields.io/pypi/v/doudesu)
-![Downloads](https://img.shields.io/pypi/dm/doudesu)
+![Python Version](https://img.shields.io/pypi/pyversions/doudesu?logo=python)
+![License](https://img.shields.io/pypi/l/doudesu?logo=gnu)
+![PyPI Version](https://img.shields.io/pypi/v/doudesu?logo=pypi)
+![Downloads](https://img.shields.io/pypi/dm/doudesu?logo=pypi)
 
 ## Features
 
@@ -39,6 +41,9 @@ pip install doudesu[gui]
 # Launch GUI interface (requires GUI support)
 doudesu --gui
 
+# Launch GUI in browser mode on localhost:6969
+doudesu --browser
+
 # Launch interactive CLI interface
 doudesu --cli
 
@@ -56,6 +61,7 @@ doudesu --help
 ```
 Options:
   --gui          Run in GUI mode (requires doudesu[gui] installation)
+  --browser      Run GUI in browser mode on localhost:6969
   --search TEXT  Search manga by keyword
   --url TEXT     Download manga by URL
   --cli          Run in interactive CLI mode
@@ -77,7 +83,6 @@ Options:
 
 - 🎨 Modern and responsive design
 - 🌓 Dark/Light theme toggle
-- 📱 Mobile-friendly layout
 - 🖼️ Thumbnail previews
 - 📊 Download progress tracking
 - 🔍 Advanced search capabilities
@@ -93,8 +98,7 @@ for manga in results.results:
     print(f"Title: {manga.name}")
     print(f"URL: {manga.url}")
 
-# Download manga
-manga = Doujindesu("manga_url")
+manga = Doujindesu("https://doujindesu.tv/manga/your-manga-url")
 details = manga.get_details()
 chapters = manga.get_all_chapters()
 

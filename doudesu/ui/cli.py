@@ -23,9 +23,7 @@ def get_int_input(prompt: str, min_val: int, max_val: int, default: int = None) 
 
             if min_val <= value <= max_val:
                 return value
-            console.print(
-                f"[red]Please enter a number between {min_val} and {max_val}[/red]"
-            )
+            console.print(f"[red]Please enter a number between {min_val} and {max_val}[/red]")
         except ValueError:
             console.print("[red]Please enter a valid number[/red]")
 
@@ -200,36 +198,26 @@ def run_cli():
 
                 # Add pagination options if available
                 if current_results.previous_page_url:
-                    nav_options.append(
-                        ("[yellow]Previous page[/yellow]", "Previous page")
-                    )
+                    nav_options.append(("[yellow]Previous page[/yellow]", "Previous page"))
                 if current_results.next_page_url:
                     nav_options.append(("[yellow]Next page[/yellow]", "Next page"))
 
                 # Add remaining options
                 nav_options.append(("[blue]New search[/blue]", "New search"))
-                nav_options.append(
-                    ("[red]Back to main menu[/red]", "Back to main menu")
-                )
+                nav_options.append(("[red]Back to main menu[/red]", "Back to main menu"))
 
                 # Display numbered options
                 for i, (display_text, _) in enumerate(nav_options, 1):
                     console.print(f"{i}. {display_text}")
 
                 nav_choice = get_int_input("Select option", 1, len(nav_options))
-                selected_option = nav_options[nav_choice - 1][
-                    1
-                ]  # Get the clean option text
+                selected_option = nav_options[nav_choice - 1][1]  # Get the clean option text
 
                 if selected_option == "Previous page":
-                    current_results = Doujindesu.get_search_by_url(
-                        current_results.previous_page_url
-                    )
+                    current_results = Doujindesu.get_search_by_url(current_results.previous_page_url)
                     continue
                 elif selected_option == "Next page":
-                    current_results = Doujindesu.get_search_by_url(
-                        current_results.next_page_url
-                    )
+                    current_results = Doujindesu.get_search_by_url(current_results.next_page_url)
                     continue
                 elif selected_option == "New search":
                     current_results = None
@@ -286,9 +274,7 @@ def run_cli():
 
                                 # Convert to PDF
                                 pdf_path = f"result/{title}.pdf"
-                                ImageToPDFConverter(
-                                    images, pdf_path
-                                ).convert_images_to_pdf(images, pdf_path)
+                                ImageToPDFConverter(images, pdf_path).convert_images_to_pdf(images, pdf_path)
                                 console.print(f"[green]Saved as: {pdf_path}[/green]")
                             else:
                                 console.print("[red]No images found in chapter[/red]")
@@ -299,9 +285,7 @@ def run_cli():
                             # Download selected chapters
                             for idx in selected_indices:
                                 chapter_url = chapters[idx]
-                                console.print(
-                                    f"\n[cyan]Downloading Chapter {idx + 1}...[/cyan]"
-                                )
+                                console.print(f"\n[cyan]Downloading Chapter {idx + 1}...[/cyan]")
 
                                 manga.url = chapter_url
                                 images = manga.get_all_images()
@@ -312,16 +296,10 @@ def run_cli():
 
                                     # Convert to PDF
                                     pdf_path = f"result/{title}.pdf"
-                                    ImageToPDFConverter(
-                                        images, pdf_path
-                                    ).convert_images_to_pdf(images, pdf_path)
-                                    console.print(
-                                        f"[green]Saved as: {pdf_path}[/green]"
-                                    )
+                                    ImageToPDFConverter(images, pdf_path).convert_images_to_pdf(images, pdf_path)
+                                    console.print(f"[green]Saved as: {pdf_path}[/green]")
                                 else:
-                                    console.print(
-                                        "[red]No images found in chapter[/red]"
-                                    )
+                                    console.print("[red]No images found in chapter[/red]")
 
                     except Exception as e:
                         console.print(f"[red]Error: {str(e)}[/red]")
@@ -347,12 +325,7 @@ def run_cli():
                 # If only one chapter, ask for confirmation
                 if len(chapters) == 1:
                     console.print("\n[cyan]Found 1 chapter[/cyan]")
-                    if (
-                        not Prompt.ask(
-                            "Download this chapter?", choices=["y", "n"], default="y"
-                        )
-                        == "y"
-                    ):
+                    if not Prompt.ask("Download this chapter?", choices=["y", "n"], default="y") == "y":
                         continue
 
                     console.print("\n[cyan]Downloading chapter...[/cyan]")
@@ -366,9 +339,7 @@ def run_cli():
 
                         # Convert to PDF
                         pdf_path = f"result/{title}.pdf"
-                        ImageToPDFConverter(images, pdf_path).convert_images_to_pdf(
-                            images, pdf_path
-                        )
+                        ImageToPDFConverter(images, pdf_path).convert_images_to_pdf(images, pdf_path)
                         console.print(f"[green]Saved as: {pdf_path}[/green]")
                     else:
                         console.print("[red]No images found in chapter[/red]")
@@ -379,9 +350,7 @@ def run_cli():
                     # Download selected chapters
                     for idx in selected_indices:
                         chapter_url = chapters[idx]
-                        console.print(
-                            f"\n[cyan]Downloading Chapter {idx + 1}...[/cyan]"
-                        )
+                        console.print(f"\n[cyan]Downloading Chapter {idx + 1}...[/cyan]")
 
                         manga.url = chapter_url
                         images = manga.get_all_images()
@@ -392,9 +361,7 @@ def run_cli():
 
                             # Convert to PDF
                             pdf_path = f"result/{title}.pdf"
-                            ImageToPDFConverter(images, pdf_path).convert_images_to_pdf(
-                                images, pdf_path
-                            )
+                            ImageToPDFConverter(images, pdf_path).convert_images_to_pdf(images, pdf_path)
                             console.print(f"[green]Saved as: {pdf_path}[/green]")
                         else:
                             console.print("[red]No images found in chapter[/red]")
@@ -404,10 +371,7 @@ def run_cli():
         else:
             break
 
-        if (
-            not Prompt.ask("\nDownload another manga?", choices=["y", "n"], default="y")
-            == "y"
-        ):
+        if not Prompt.ask("\nDownload another manga?", choices=["y", "n"], default="y") == "y":
             break
 
     console.print("\n[cyan]Thank you for using Doujindesu Downloader![/cyan]")
