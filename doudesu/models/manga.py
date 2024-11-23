@@ -5,8 +5,6 @@ This module contains all the Pydantic models used to represent
 manga data throughout the application.
 """
 
-from typing import List, Optional
-
 from pydantic import BaseModel, Field
 
 
@@ -27,7 +25,7 @@ class Result(BaseModel):
     name: str
     url: str
     thumbnail: str
-    genre: List[str]
+    genre: list[str]
     type: str = Field(default="Doujinshi")
     score: float = Field(default=0)
     status: str = Field(default="Finished")
@@ -46,9 +44,9 @@ class SearchResult(BaseModel):
         previous_page_url (str | None): URL to the previous page of results, if available
     """
 
-    results: List[Result]
-    next_page_url: Optional[str] = None
-    previous_page_url: Optional[str] = None
+    results: list[Result]
+    next_page_url: str | None = None
+    previous_page_url: str | None = None
 
     class Config:
         frozen = True
@@ -74,13 +72,13 @@ class DetailsResult(BaseModel):
     name: str
     url: str
     thumbnail: str
-    genre: List[str]
+    genre: list[str]
     series: str
     author: str
     type: str = Field(default="Doujinshi")
     score: float = Field(default=0)
     status: str = Field(default="Finished")
-    chapter_urls: List[str] = Field(default_factory=list)
+    chapter_urls: list[str] = Field(default_factory=list)
 
     class Config:
         frozen = True

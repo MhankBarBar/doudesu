@@ -10,7 +10,7 @@ from importlib.util import find_spec
 from rich.console import Console
 
 from .core import Doujindesu
-from .ui import run_cli, run_gui
+from .ui import run_cli
 
 console = Console()
 
@@ -41,6 +41,8 @@ def main():
 
     if args.gui or args.browser:
         if check_gui_dependencies():
+            from .ui import run_gui
+
             run_gui(browser_mode=args.browser)
         else:
             console.print(

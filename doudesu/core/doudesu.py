@@ -8,7 +8,6 @@ allowing users to search, download, and convert manga chapters to PDF format.
 import re
 
 from bs4 import BeautifulSoup as Bs
-from rich import print
 from tls_client import Session
 
 from ..models import DetailsResult, Result, SearchResult
@@ -204,26 +203,18 @@ class Doujindesu(ImageToPDFConverter):
 
 
 def example_usage():
-    # Example usage
     manga = Doujindesu(f"{BASE_URL}/manga/seiwayaki-kaasan-ni-doutei-made-sewa-shitemoraimasu/")
 
-    # Get manga details
     details = manga.get_details()
     if details:
         print(f"Title: {details.name}")
         print(f"Author: {details.author}")
 
-        # Get all chapters
         chapters = manga.get_all_chapters()
         print(f"\nFound {len(chapters)} chapters:")
         for chapter in chapters:
             print(f"- {chapter['title']}: {chapter['url']}")
 
-        # Download specific chapter
-        if chapters:
-            print("\nDownloading first chapter...")
-            images, title = manga.download_chapter(chapters[0]["url"])
-            print(f"Downloaded {title} with {len(images)} images")
 
 
 if __name__ == "__main__":
