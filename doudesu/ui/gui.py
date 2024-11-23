@@ -5,23 +5,26 @@ This module requires the 'gui' extra dependencies.
 
 import os
 import sys
+from importlib.util import find_spec
 from pathlib import Path
 
-import flet as ft
 from rich.console import Console
 
 from ..core.doudesu import Doujindesu, Result
 from ..utils.constants import DEFAULT_SETTINGS
 from ..utils.converter import ImageToPDFConverter
-from .components.loading import LoadingAnimation
 
 console = Console()
+
+if find_spec("flet"):
+    import flet as ft
+
+    from .components.loading import LoadingAnimation
 
 
 def run_gui(browser_mode: bool = False):
     """Run the GUI version of the application."""
     try:
-        import flet as ft
 
         def main(page: ft.Page):
             page.title = "Doujindesu Downloader"
