@@ -92,11 +92,22 @@ class Doujindesu(ImageToPDFConverter):
         Retrieves URLs for all chapters of the manga.
 
         Returns:
-            list[str]: List of chapter URLs in reverse chronological order
+            list[str]: List of chapter URLs
         """
         self.scrap()
-        urls = list(reversed([BASE_URL + x.a.get("href") for x in self.soup.select("span.eps")]))
-        return urls
+        all_chapters = [BASE_URL + x.a.get("href") for x in self.soup.select("span.eps")]
+
+        filtered_chapters = []
+        for chapter in all_chapters:
+            match = re.search(r"chapter-([0-9.-]+)", chapter)
+            if match:
+                chapter_num = match.group(1)
+                if "-" not in chapter_num:
+                    filtered_chapters.append(chapter)
+            else:
+                filtered_chapters.append(chapter)
+
+        return list(reversed(filtered_chapters))
 
     def get_all_images(self) -> list[str]:
         """
@@ -133,7 +144,7 @@ class Doujindesu(ImageToPDFConverter):
             type=soup.find("tr", {"class": "magazines"}).a.text.strip(),
             score=float(soup.find("div", {"class": "rating-prc"}).text.strip()),
             status=soup.find("tr", {"class": ""}).a.text.strip(),
-            chapter_urls=list(reversed([BASE_URL + x.a.get("href") for x in soup.select("span.eps")])),
+            chapter_urls=self.get_all_chapters(),
         )
 
     def get_search(self) -> SearchResult | None:
@@ -174,7 +185,7 @@ class Doujindesu(ImageToPDFConverter):
         )
 
     @classmethod
-    def search(cls, query: str) -> SearchResult | None:
+    def search(cls, query: str, page: int | None = None) -> SearchResult | None:
         """
         Searches for manga by keyword.
 
@@ -184,7 +195,8 @@ class Doujindesu(ImageToPDFConverter):
         Returns:
             SearchResult | None: Search results or None if no results found
         """
-        x = cls(f"{BASE_URL}/?s={query}")
+        url = f"{BASE_URL}/page/{page}/?s={query}" if page else f"{BASE_URL}/?s={query}"
+        x = cls(url)
         return x.get_search()
 
     @classmethod
@@ -214,7 +226,6 @@ def example_usage():
         print(f"\nFound {len(chapters)} chapters:")
         for chapter in chapters:
             print(f"- {chapter['title']}: {chapter['url']}")
-
 
 
 if __name__ == "__main__":

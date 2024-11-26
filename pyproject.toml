@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "doudesu"
-version = "0.6.0"
+version = "0.7.0"
 description = "A Python wrapper and downloader for doujindesu.tv"
 readme = "README.md"
 authors = [
@@ -34,7 +34,8 @@ dependencies = [
 requires-python = ">=3.10"
 
 [project.optional-dependencies]
-gui = ["flet>=0.7.0"]
+gui = ["flet>=0.21.1"]
+api = ["fastapi>=0.109.0", "uvicorn>=0.27.0"]
 
 [project.urls]
 Homepage = "https://github.com/MhankBarBar/doudesu"

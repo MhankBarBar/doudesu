@@ -1,5 +1,5 @@
 """
-Command-line interface for the Dodesu manga downloader.
+Command-line interface for the Doudesu.
 """
 
 from rich.console import Console
@@ -30,7 +30,7 @@ def get_int_input(prompt: str, min_val: int, max_val: int, default: int | None =
 
 def get_status_color(status: str) -> str:
     """Get color based on manga status."""
-    status_colors = {"finished": "green", "ongoing": "yellow"}
+    status_colors = {"finished": "green", "publishing": "yellow"}
     return status_colors.get(status.lower(), "white")
 
 

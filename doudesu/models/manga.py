@@ -1,8 +1,5 @@
 """
-Data models for the Doujindesu library.
-
-This module contains all the Pydantic models used to represent
-manga data throughout the application.
+Data models for the Doudesu library.
 """
 
 from pydantic import BaseModel, Field

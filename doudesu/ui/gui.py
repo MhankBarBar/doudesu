@@ -1,5 +1,5 @@
 """
-GUI interface for the Doujindesu manga downloader.
+GUI interface for the Doudesu.
 This module requires the 'gui' extra dependencies.
 """
 
