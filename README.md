@@ -1,8 +1,8 @@
 <div align="center">
-    <img src="./doudesu/assets/images/logo.png" alt="logo" width="200">
+    <img src="https://github.com/MhankBarBar/doudesu/blob/master/doudesu/assets/images/logo.png?raw=true" alt="logo" width="200">
+    <h1>Doudesu</h1>
+    <p>A powerful manga downloader and Python wrapper for doujindesu.tv with both CLI and GUI interfaces.</p>
 </div>
-
-A powerful manga downloader and Python wrapper for doujindesu.tv with both CLI and GUI interfaces.
 
 ![Python Version](https://img.shields.io/pypi/pyversions/doudesu?logo=python)
 ![License](https://img.shields.io/pypi/l/doudesu?logo=gnu)
@@ -50,6 +50,9 @@ doudesu --cli
 # Search manga by keyword
 doudesu --search "manga name"
 
+# Search manga by keyword with pagination
+doudesu --search "manga name" --page 2
+
 # Download manga directly by URL
 doudesu --url "https://doujindesu.tv/manga/your-manga-url"
 
@@ -62,7 +65,9 @@ doudesu --help
 Options:
   --gui          Run in GUI mode (requires doudesu[gui] installation)
   --browser      Run GUI in browser mode on localhost:6969
+  --api          Run doudesu in API mode using FastAPI
   --search TEXT  Search manga by keyword
+  --page INT     Page number for search results (default: 1)
   --url TEXT     Download manga by URL
   --cli          Run in interactive CLI mode
 ```
@@ -86,6 +91,17 @@ Options:
 - 🖼️ Thumbnail previews
 - 📊 Download progress tracking
 - 🔍 Advanced search capabilities
+- 📚 Chapter selection options
+  - Download all chapters
+  - Download specific chapter
+  - Download range of chapters
+- 🔄 Pagination support for search results
+
+### API Features
+
+- 📄 JSON response
+- 🔍 Search manga by keyword
+- 📚 Get manga details
 
 ## Python API Usage
 
