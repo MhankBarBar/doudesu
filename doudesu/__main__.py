@@ -45,12 +45,7 @@ def main():
         help="Run GUI in browser mode on localhost:6969",
     )
     parser.add_argument("--search", type=str, help="Search manga by keyword")
-    parser.add_argument(
-        "--page", 
-        type=int, 
-        default=1,
-        help="Page number for search results (default: 1)"
-    )
+    parser.add_argument("--page", type=int, default=1, help="Page number for search results (default: 1)")
     parser.add_argument("--url", type=str, help="Download manga by URL")
     parser.add_argument("--cli", action="store_true", help="Run in interactive CLI mode")
     parser.add_argument(

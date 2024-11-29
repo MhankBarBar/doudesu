@@ -34,7 +34,6 @@ def run_gui(browser_mode: bool = False):
 
             app = DoujindesuApp()
             app.set_page(page)
-            page.add(app.build())
 
         assets_dir = Path(__file__).parent.parent / "assets"
 
@@ -70,33 +69,55 @@ class DoujindesuApp:
         self.blur_thumbnails = DEFAULT_SETTINGS["blur_thumbnails"]
         self.theme_mode = ft.ThemeMode.DARK if self.is_dark else ft.ThemeMode.LIGHT
 
-        # Create result folder if it doesn't exist
+        self.selected_nav_index = 0
+
         os.makedirs(self.result_folder, exist_ok=True)
 
-        self.logo = ft.Image(
-            src="/images/logo.png" if self.is_dark else "/images/logo_light.png",
-            width=250,
-            height=250,
-            fit=ft.ImageFit.CONTAIN,
-            border_radius=ft.border_radius.all(12),
+        self.main_status_text = ft.Text(
+            value="",
+            size=16,
+            color=ft.colors.BLUE,
+            visible=False,
         )
 
-        input_border = ft.InputBorder.UNDERLINE
+        self.search_status_text = ft.Text(
+            value="",
+            size=16,
+            color=ft.colors.BLUE,
+            visible=False,
+        )
+
+        self.initialize_controls()
+
+    def initialize_controls(self):
+        """Initialize all controls but don't create views yet."""
+        self.logo = ft.Image(
+            src="/images/logo.png" if self.is_dark else "/images/logo_light.png",
+            width=None,
+            height=None,
+            fit=ft.ImageFit.CONTAIN,
+            border_radius=ft.border_radius.all(12),
+            expand=True,
+        )
+
         input_style = {
-            "width": 300,
-            "border_radius": 8,
-            "border_color": ft.colors.BLUE_400,
-            "focused_border_color": ft.colors.BLUE_700,
-            "cursor_color": ft.colors.BLUE_700,
+            "width": None,
+            "expand": True,
+            "border_radius": 12,
+            "border_color": ft.colors.OUTLINE,
+            "focused_border_color": ft.colors.PRIMARY,
+            "cursor_color": ft.colors.PRIMARY,
             "text_size": 16,
-            "content_padding": 20,
+            "content_padding": ft.padding.symmetric(horizontal=20, vertical=16),
+            "filled": True,
+            "bgcolor": ft.colors.SURFACE,
         }
 
         self.search_query = ft.TextField(
             label="Search manga",
             hint_text="Enter manga name...",
-            prefix_icon=ft.icons.SEARCH,
-            border=input_border,
+            prefix_icon=ft.icons.SEARCH_ROUNDED,
+            border=ft.InputBorder.OUTLINE,
             visible=True,
             on_submit=self.handle_search,
             **input_style,
@@ -105,8 +126,8 @@ class DoujindesuApp:
         self.url_input = ft.TextField(
             label="Manga URL",
             hint_text="Enter manga URL here...",
-            prefix_icon=ft.icons.LINK,
-            border=input_border,
+            prefix_icon=ft.icons.LINK_ROUNDED,
+            border=ft.InputBorder.OUTLINE,
             visible=False,
             on_submit=self.handle_download_by_url,
             **input_style,
@@ -115,24 +136,25 @@ class DoujindesuApp:
         button_style = {
             "style": ft.ButtonStyle(
                 bgcolor={
-                    ft.MaterialState.DEFAULT: ft.colors.BLUE_700,
-                    ft.MaterialState.HOVERED: ft.colors.BLUE_800,
+                    ft.MaterialState.DEFAULT: ft.colors.PRIMARY,
+                    ft.MaterialState.HOVERED: ft.colors.PRIMARY_CONTAINER,
                 },
                 shape={
-                    ft.MaterialState.DEFAULT: ft.RoundedRectangleBorder(radius=50),
+                    ft.MaterialState.DEFAULT: ft.RoundedRectangleBorder(radius=12),
                 },
-                padding=ft.padding.all(20),
+                padding=ft.padding.symmetric(horizontal=32, vertical=20),
                 animation_duration=200,
-                shadow_color=ft.colors.with_opacity(0.3, ft.colors.BLACK),
-                elevation={"pressed": 0, "": 4},
+                shadow_color=ft.colors.with_opacity(0.2, ft.colors.SHADOW),
+                elevation={"pressed": 0, "": 2},
+                overlay_color=ft.colors.with_opacity(0.1, ft.colors.ON_PRIMARY),
             ),
-            "color": ft.colors.WHITE,
+            "color": ft.colors.ON_PRIMARY,
         }
 
         self.search_button = ft.ElevatedButton(
             content=ft.Row(
                 [
-                    ft.Icon(ft.icons.SEARCH, size=20),
+                    ft.Icon(ft.icons.SEARCH_ROUNDED, size=20),
                     ft.Text("Search", size=16, weight=ft.FontWeight.W_500),
                 ],
                 tight=True,
@@ -145,7 +167,7 @@ class DoujindesuApp:
         self.download_button = ft.ElevatedButton(
             content=ft.Row(
                 [
-                    ft.Icon(ft.icons.DOWNLOAD, size=20),
+                    ft.Icon(ft.icons.DOWNLOAD_ROUNDED, size=20),
                     ft.Text("Download", size=16, weight=ft.FontWeight.W_500),
                 ],
                 tight=True,
@@ -184,29 +206,13 @@ class DoujindesuApp:
             **button_style,
         )
 
-        self.nav_rail = ft.NavigationRail(
-            destinations=[
-                ft.NavigationRailDestination(
-                    icon=ft.icons.SEARCH,
-                    selected_icon=ft.icons.SEARCH,
-                    label="Search",
-                ),
-                ft.NavigationRailDestination(
-                    icon=ft.icons.LINK,
-                    selected_icon=ft.icons.LINK,
-                    label="Download",
-                ),
-            ],
-            selected_index=0,
-            on_change=self.handle_option_change,
-            min_width=80,
-            min_extended_width=180,
-            leading=ft.Column(
+        self.nav_rail = ft.Container(
+            content=ft.Column(
                 [
                     ft.IconButton(
-                        icon=ft.icons.DARK_MODE,
-                        selected_icon=ft.icons.LIGHT_MODE,
-                        icon_color=ft.colors.BLUE_400,
+                        icon=ft.icons.DARK_MODE_ROUNDED,
+                        selected_icon=ft.icons.LIGHT_MODE_ROUNDED,
+                        icon_color=ft.colors.PRIMARY,
                         selected=self.is_dark,
                         on_click=self.toggle_theme,
                         tooltip="Toggle theme",
@@ -214,12 +220,13 @@ class DoujindesuApp:
                             shape={
                                 ft.MaterialState.DEFAULT: ft.CircleBorder(),
                             },
+                            overlay_color=ft.colors.with_opacity(0.1, ft.colors.PRIMARY),
                         ),
                     ),
                     ft.IconButton(
-                        icon=ft.icons.BLUR_ON,
-                        selected_icon=ft.icons.BLUR_OFF,
-                        icon_color=ft.colors.BLUE_400,
+                        icon=ft.icons.BLUR_ON_ROUNDED,
+                        selected_icon=ft.icons.BLUR_OFF_ROUNDED,
+                        icon_color=ft.colors.PRIMARY,
                         selected=self.blur_thumbnails,
                         on_click=self.toggle_blur,
                         tooltip="Toggle blur",
@@ -227,15 +234,46 @@ class DoujindesuApp:
                             shape={
                                 ft.MaterialState.DEFAULT: ft.CircleBorder(),
                             },
+                            overlay_color=ft.colors.with_opacity(0.1, ft.colors.PRIMARY),
+                        ),
+                    ),
+                    ft.Divider(height=20, thickness=1),
+                    ft.IconButton(
+                        icon=ft.icons.SEARCH_ROUNDED,
+                        icon_color=ft.colors.PRIMARY if self.selected_nav_index == 0 else ft.colors.ON_SURFACE_VARIANT,
+                        selected=self.selected_nav_index == 0,
+                        on_click=lambda e: self.handle_option_change(0),
+                        tooltip="Search",
+                        style=ft.ButtonStyle(
+                            shape={
+                                ft.MaterialState.DEFAULT: ft.CircleBorder(),
+                            },
+                            overlay_color=ft.colors.with_opacity(0.1, ft.colors.PRIMARY),
+                        ),
+                    ),
+                    ft.IconButton(
+                        icon=ft.icons.LINK_ROUNDED,
+                        icon_color=ft.colors.PRIMARY if self.selected_nav_index == 1 else ft.colors.ON_SURFACE_VARIANT,
+                        selected=self.selected_nav_index == 1,
+                        on_click=lambda e: self.handle_option_change(1),
+                        tooltip="Download by URL",
+                        style=ft.ButtonStyle(
+                            shape={
+                                ft.MaterialState.DEFAULT: ft.CircleBorder(),
+                            },
+                            overlay_color=ft.colors.with_opacity(0.1, ft.colors.PRIMARY),
                         ),
                     ),
                 ],
-                spacing=0,
+                spacing=4,
+                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                alignment=ft.MainAxisAlignment.START,
             ),
+            width=80,
             bgcolor=ft.colors.SURFACE_VARIANT,
+            padding=ft.padding.only(top=20),
+            border=ft.border.only(right=ft.BorderSide(1, ft.colors.OUTLINE)),
         )
-
-        self.status_text = ft.Text(size=16, color=ft.colors.BLUE)
 
         self.is_downloading = False
 
@@ -250,134 +288,11 @@ class DoujindesuApp:
         self.download_progress = ft.ProgressBar(visible=False)
         self.download_status = ft.Text(visible=False)
 
-        self.main_view = ft.Container(content=self.build_main_view(), visible=True, expand=True)
-
-        self.search_results_view = ft.Container(
-            content=ft.Column(
-                [
-                    ft.Row(
-                        [
-                            ft.IconButton(
-                                icon=ft.icons.ARROW_BACK,
-                                icon_color=ft.colors.BLUE_400,
-                                tooltip="Back to Search",
-                                on_click=self.show_main_view,
-                            ),
-                            ft.Text("Search Results", size=20, weight=ft.FontWeight.BOLD),
-                        ],
-                        alignment=ft.MainAxisAlignment.START,
-                    ),
-                    ft.Row(
-                        [
-                            self.previous_button,
-                            self.next_button,
-                        ],
-                        alignment=ft.MainAxisAlignment.CENTER,
-                        spacing=10,
-                    ),
-                    self.status_text,
-                    self.search_results,
-                    ft.Row(
-                        [
-                            ft.ElevatedButton(
-                                "Previous",
-                                icon=ft.icons.ARROW_BACK,
-                                on_click=self.handle_previous,
-                                visible=False,
-                                **button_style,
-                            ),
-                            ft.ElevatedButton(
-                                "Next",
-                                icon=ft.icons.ARROW_FORWARD,
-                                on_click=self.handle_next,
-                                visible=False,
-                                **button_style,
-                            ),
-                        ],
-                        alignment=ft.MainAxisAlignment.CENTER,
-                        spacing=10,
-                    ),
-                ],
-                spacing=20,
-                scroll=ft.ScrollMode.AUTO,
-                expand=True,
-            ),
-            visible=False,
-            expand=True,
-        )
-
-        self.details_view = ft.Container(
-            content=None,
-            padding=40,
-            bgcolor=ft.colors.SURFACE_VARIANT,
-            border_radius=12,
-            visible=False,
-            expand=True,
-        )
-
         self.snackbar = ft.SnackBar(
             content=ft.Text(""),
-            bgcolor=ft.colors.BLUE_700,
-            action="OK",
-        )
-
-        self.url_download_view = ft.Container(
-            content=ft.Column(
-                [
-                    ft.Container(
-                        content=self.logo,
-                        alignment=ft.alignment.center,
-                        animate=ft.animation.Animation(300, "easeOut"),
-                        padding=20,
-                    ),
-                    ft.Container(
-                        content=ft.Column(
-                            [
-                                ft.ResponsiveRow(
-                                    [
-                                        ft.Column(
-                                            [self.url_input],
-                                            col={"sm": 12, "md": 8, "lg": 6},
-                                            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                                        ),
-                                    ],
-                                    alignment=ft.MainAxisAlignment.CENTER,
-                                ),
-                                ft.ResponsiveRow(
-                                    [
-                                        ft.Column(
-                                            [self.download_button],
-                                            col={"sm": 12, "md": 8, "lg": 6},
-                                            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                                        ),
-                                    ],
-                                    alignment=ft.MainAxisAlignment.CENTER,
-                                ),
-                            ],
-                            alignment=ft.MainAxisAlignment.CENTER,
-                            spacing=20,
-                        ),
-                        padding=ft.padding.all(30),
-                        border_radius=12,
-                        gradient=ft.LinearGradient(
-                            begin=ft.alignment.top_center,
-                            end=ft.alignment.bottom_center,
-                            colors=[
-                                ft.colors.with_opacity(0.05, ft.colors.WHITE),
-                                ft.colors.with_opacity(0.02, ft.colors.WHITE),
-                            ],
-                        ),
-                    ),
-                    self.status_text,
-                ],
-                expand=True,
-                alignment=ft.MainAxisAlignment.CENTER,
-                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                spacing=30,
-            ),
-            visible=False,
-            expand=True,
-            padding=40,
+            bgcolor=ft.colors.INVERSE_SURFACE,
+            action_color=ft.colors.RED,
+            action="Dismiss",
         )
 
         self.download_container = ft.Container(
@@ -385,54 +300,55 @@ class DoujindesuApp:
                 [
                     ft.Row(
                         [
-                            ft.Icon(ft.icons.DOWNLOAD, color=ft.colors.WHITE),
+                            ft.Icon(ft.icons.DOWNLOAD_ROUNDED, color=ft.colors.ON_SURFACE),
                             ft.Text(
                                 "Downloading...",
                                 size=14,
-                                weight=ft.FontWeight.BOLD,
-                                color=ft.colors.WHITE,
+                                weight=ft.FontWeight.W_300,
+                                color=ft.colors.ON_SURFACE,
                             ),
                         ],
                         spacing=10,
                     ),
                     ft.Text(
-                        "",  # Progress text
+                        "",
                         size=12,
-                        color=ft.colors.WHITE,
+                        color=ft.colors.ON_SURFACE_VARIANT,
                     ),
                     ft.ProgressBar(
-                        width=200,
+                        width=None,
+                        expand=True,
                         height=4,
+                        color=ft.colors.PRIMARY,
+                        bgcolor=ft.colors.SURFACE_VARIANT,
                     ),
                     ft.Text(
-                        "",  # Image progress
+                        "",
                         size=12,
-                        color=ft.colors.GREY_400,
+                        color=ft.colors.ON_SURFACE_VARIANT,
                     ),
                 ],
                 horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                 spacing=10,
             ),
-            bgcolor=ft.colors.with_opacity(0.9, ft.colors.BLACK),
-            padding=15,
-            border_radius=8,
-            width=250,
+            bgcolor=ft.colors.SURFACE,
+            padding=20,
+            border_radius=16,
+            width=min(280, self.page.width * 0.8) if self.page else 280,
             shadow=ft.BoxShadow(
-                spread_radius=1,
-                blur_radius=10,
-                color=ft.colors.with_opacity(0.3, ft.colors.BLACK),
+                spread_radius=0,
+                blur_radius=8,
+                color=ft.colors.with_opacity(0.2, ft.colors.SHADOW),
                 offset=ft.Offset(0, 2),
             ),
             visible=False,
-            right=20,
-            bottom=20,
-            left=None,
-            top=None,
+            right=24,
+            bottom=24,
         )
 
     def handle_previous(self, e):
         if self.previous_page_url:
-            self.loading_animation.content.controls[1].value = "Loading previous page..."
+            self.loading_animation.value = "Loading previous page..."
             self.loading_animation.visible = True
             self.loading_animation.update()
 
@@ -448,7 +364,7 @@ class DoujindesuApp:
 
     def handle_next(self, e):
         if self.next_page_url:
-            self.loading_animation.content.controls[1].value = "Loading next page..."
+            self.loading_animation.value = "Loading next page..."
             self.loading_animation.visible = True
             self.loading_animation.update()
 
@@ -465,70 +381,122 @@ class DoujindesuApp:
     def update_search_results(self):
         if self.results:
             self.search_results.controls = [self.create_result_control(result) for result in self.results]
-            self.status_text.value = f"Found {len(self.results)} result(s):"
+            self.search_status_text.value = f"Found {len(self.results)} result(s):"
         else:
-            self.status_text.value = "No results found."
+            self.search_status_text.value = "No results found."
+            self.search_results.controls = []
 
-        # Get bottom navigation buttons
-        bottom_nav = self.search_results_view.content.controls[-1].controls
-        bottom_prev = bottom_nav[0]
-        bottom_next = bottom_nav[1]
+        self.previous_button.visible = bool(self.previous_page_url)
+        self.next_button.visible = bool(self.next_page_url)
 
-        # Update visibility for both top and bottom navigation buttons
-        self.previous_button.visible = self.previous_page_url is not None
-        self.next_button.visible = self.next_page_url is not None
-        bottom_prev.visible = self.previous_page_url is not None
-        bottom_next.visible = self.next_page_url is not None
+        self.search_results_view.content = ft.Column(
+            [
+                ft.ResponsiveRow(
+                    [
+                        ft.Container(
+                            content=ft.Row(
+                                [
+                                    ft.IconButton(
+                                        icon=ft.icons.ARROW_BACK,
+                                        icon_color=ft.colors.PRIMARY,
+                                        tooltip="Back to Search",
+                                        on_click=self.show_main_view,
+                                    ),
+                                    ft.Text("Search Results", size=20, weight=ft.FontWeight.BOLD),
+                                ],
+                                alignment=ft.MainAxisAlignment.START,
+                            ),
+                            col={"sm": 12},
+                            padding=10,
+                        ),
+                    ]
+                ),
+                ft.Container(
+                    content=ft.Row(
+                        [self.previous_button, self.next_button],
+                        alignment=ft.MainAxisAlignment.CENTER,
+                        spacing=10,
+                    ),
+                    padding=ft.padding.only(bottom=20),
+                ),
+                ft.Container(
+                    content=self.search_status_text,
+                    padding=10,
+                ),
+                ft.Container(
+                    content=self.search_results,
+                    expand=True,
+                    padding=ft.padding.symmetric(
+                        horizontal=max(10, min(20, self.page.width * 0.03)) if self.page else 20,
+                    ),
+                ),
+                ft.Container(
+                    content=ft.Row(
+                        [self.previous_button, self.next_button],
+                        alignment=ft.MainAxisAlignment.CENTER,
+                        spacing=10,
+                    ),
+                    padding=ft.padding.symmetric(vertical=20),
+                ),
+            ],
+            spacing=20,
+            scroll=ft.ScrollMode.AUTO,
+            expand=True,
+        )
 
-        # Update all controls
-        self.search_results.update()
-        self.status_text.update()
-        self.previous_button.update()
-        self.next_button.update()
-        bottom_prev.update()
-        bottom_next.update()
+        self.main_view.visible = False
+        self.details_view.visible = False
+        self.search_results_view.visible = True
+        self.page.update()
 
-    def handle_option_change(self, e):
-        if self.nav_rail.selected_index == 0:  # Search by Keyword
-            # Reset all views first
+    def handle_option_change(self, index: int):
+        """Handle navigation rail option changes."""
+        self.selected_nav_index = index
+
+        search_icon = self.nav_rail.content.controls[3]
+        download_icon = self.nav_rail.content.controls[4]
+
+        search_icon.icon_color = ft.colors.PRIMARY if self.selected_nav_index == 0 else ft.colors.ON_SURFACE_VARIANT
+        download_icon.icon_color = ft.colors.PRIMARY if self.selected_nav_index == 1 else ft.colors.ON_SURFACE_VARIANT
+        search_icon.selected = self.selected_nav_index == 0
+        download_icon.selected = self.selected_nav_index == 1
+
+        if self.selected_nav_index == 0:
             self.details_view.visible = False
             self.search_results_view.visible = False
-            self.url_download_view.visible = False
             self.main_view.visible = True
+            self.search_results.visible = True
 
-            # Reset search-related elements
             self.search_query.visible = True
             self.url_input.visible = False
             self.search_button.visible = True
             self.download_button.visible = False
 
-            # Clear previous search results if any
             self.search_results.controls = []
             self.results = []
             self.next_page_url = None
             self.previous_page_url = None
             self.selected_result = None
 
-        else:  # Download by URL
-            # Reset all views first
+            self.main_status_text.value = ""
+
+        else:
             self.details_view.visible = False
             self.search_results_view.visible = False
-            self.main_view.visible = False
-            self.url_download_view.visible = True
+            self.main_view.visible = True
 
-            # Reset URL-related elements
             self.search_query.visible = False
             self.url_input.visible = True
             self.search_button.visible = False
             self.download_button.visible = True
 
+        self.main_view.content = self.build_main_view()
         self.page.update()
 
     def create_result_control(self, result: Result):
         type_color = ft.colors.BLUE_700 if result.type.lower() == "doujinshi" else ft.colors.GREEN_700
         title_color = ft.colors.WHITE if self.theme_mode == ft.ThemeMode.DARK else ft.colors.GREY_800
 
-        # Create a stack with blurred overlay
         image_stack = ft.Stack(
             [
                 ft.Image(
@@ -643,10 +611,32 @@ class DoujindesuApp:
             self.page.show_snack_bar(self.snackbar)
             return
 
-        # Get color based on type
         type_color = ft.colors.BLUE_700 if details.type.lower() == "doujinshi" else ft.colors.GREEN_700
 
-        # Create image stack with blur effect for details thumbnail
+        download_btn = ft.ElevatedButton(
+            content=ft.Row(
+                [
+                    ft.Icon(ft.icons.DOWNLOAD_ROUNDED, size=20, color=ft.colors.ON_PRIMARY),
+                    ft.Text("Download", size=16, weight=ft.FontWeight.W_500),
+                ],
+                tight=True,
+                spacing=8,
+            ),
+            bgcolor=ft.colors.PRIMARY,
+            color=ft.colors.ON_PRIMARY,
+            on_click=lambda e: self.handle_download_click(e, result),
+            style=ft.ButtonStyle(
+                shape={
+                    ft.MaterialState.DEFAULT: ft.RoundedRectangleBorder(radius=12),
+                },
+                padding=ft.padding.symmetric(horizontal=32, vertical=20),
+                animation_duration=200,
+                shadow_color=ft.colors.with_opacity(0.2, ft.colors.SHADOW),
+                elevation={"pressed": 0, "": 2},
+                overlay_color=ft.colors.with_opacity(0.1, ft.colors.ON_PRIMARY),
+            ),
+        )
+
         details_image_stack = ft.Stack(
             [
                 ft.Image(
@@ -682,217 +672,7 @@ class DoujindesuApp:
             animate=ft.animation.Animation(300, "easeOut"),
         )
 
-        # Create chapter dropdown if multiple chapters exist
-        chapter_selector = None
-        if len(details.chapter_urls) > 1:
-            chapter_selector = ft.Dropdown(
-                label="Select Chapter",
-                border=ft.InputBorder.UNDERLINE,
-                focused_border_color=ft.colors.BLUE_700,
-                focused_color=ft.colors.BLUE_700,
-                text_size=16,
-                content_padding=15,
-                options=[ft.dropdown.Option(f"Chapter {i+1}") for i in range(len(details.chapter_urls))],
-                width=200,
-            )
-
-        # Get text color based on theme
         text_color = ft.colors.GREY_800 if self.theme_mode == ft.ThemeMode.LIGHT else ft.colors.GREY_400
-
-        def handle_download_click(e):
-            if len(details.chapter_urls) == 1:
-                self.download_manga(e, result.url, all_chapters=True)
-                return
-
-            def close_dialog(e):
-                dialog.open = False
-                self.page.update()
-
-            def handle_download_choice(e, choice: str):
-                dialog.open = False
-                self.page.update()
-
-                if choice == "single" and chapter_selector.value:
-                    chapter_index = int(chapter_selector.value.split()[-1])
-                    self.download_manga(e, result.url, chapter_index=str(chapter_index))
-                elif choice == "range":
-                    try:
-                        start = int(start_chapter.value or "1")
-                        end = int(end_chapter.value or str(len(details.chapter_urls)))
-                        if 1 <= start <= end <= len(details.chapter_urls):
-                            self.download_manga(e, result.url, chapter_range=(start, end))
-                        else:
-                            self.snackbar.bgcolor = ft.colors.RED_700
-                            self.snackbar.content = ft.Text(
-                                f"Invalid range! Please enter numbers between 1 and {len(details.chapter_urls)}",
-                                color=ft.colors.WHITE,
-                            )
-                            self.page.show_snack_bar(self.snackbar)
-                    except ValueError:
-                        self.snackbar.bgcolor = ft.colors.RED_700
-                        self.snackbar.content = ft.Text(
-                            "Please enter valid numbers for chapter range!",
-                            color=ft.colors.WHITE,
-                        )
-                        self.page.show_snack_bar(self.snackbar)
-                elif choice == "all":
-                    self.download_manga(e, result.url, all_chapters=True)
-
-            # Create range download dialog
-            start_chapter = ft.TextField(
-                label="Start Chapter",
-                hint_text="e.g. 1",
-                border=ft.InputBorder.UNDERLINE,
-                width=150,
-                keyboard_type=ft.KeyboardType.NUMBER,
-            )
-
-            end_chapter = ft.TextField(
-                label="End Chapter",
-                hint_text=f"e.g. {len(details.chapter_urls)}",
-                border=ft.InputBorder.UNDERLINE,
-                width=150,
-                keyboard_type=ft.KeyboardType.NUMBER,
-            )
-
-            # Create dialog content based on chapter count
-            dialog_content = [
-                ft.Text(f"Found {len(details.chapter_urls)} chapters", size=16),
-                ft.Divider(),
-            ]
-
-            if len(details.chapter_urls) > 1:
-                dialog_content.extend(
-                    [
-                        ft.Text("Download Single Chapter:", size=16),
-                        chapter_selector,
-                        ft.Divider(),
-                        ft.Text("Download Range:", size=16),
-                        ft.Row(
-                            [start_chapter, ft.Text("to"), end_chapter],
-                            alignment=ft.MainAxisAlignment.CENTER,
-                        ),
-                    ]
-                )
-
-            # Create buttons based on chapter count
-            download_buttons = []
-            if len(details.chapter_urls) > 1:
-                download_buttons.extend(
-                    [
-                        ft.ElevatedButton(
-                            content=ft.Row(
-                                [
-                                    ft.Icon(ft.icons.DOWNLOAD, size=20),
-                                    ft.Text("Download Single", size=16),
-                                ],
-                                spacing=8,
-                            ),
-                            style=ft.ButtonStyle(
-                                bgcolor=ft.colors.BLUE_700,
-                                color=ft.colors.WHITE,
-                            ),
-                            on_click=lambda e: handle_download_choice(e, "single"),
-                        ),
-                        ft.ElevatedButton(
-                            content=ft.Row(
-                                [
-                                    ft.Icon(ft.icons.DOWNLOAD_FOR_OFFLINE, size=20),
-                                    ft.Text("Download Range", size=16),
-                                ],
-                                spacing=8,
-                            ),
-                            style=ft.ButtonStyle(
-                                bgcolor=ft.colors.GREEN_700,
-                                color=ft.colors.WHITE,
-                            ),
-                            on_click=lambda e: handle_download_choice(e, "range"),
-                        ),
-                    ]
-                )
-
-            download_buttons.append(
-                ft.ElevatedButton(
-                    content=ft.Row(
-                        [
-                            ft.Icon(ft.icons.DOWNLOAD_FOR_OFFLINE, size=20),
-                            ft.Text(
-                                "Download All" if len(details.chapter_urls) > 1 else "Download",
-                                size=16,
-                            ),
-                        ],
-                        spacing=8,
-                    ),
-                    style=ft.ButtonStyle(
-                        bgcolor=ft.colors.ORANGE_700,
-                        color=ft.colors.WHITE,
-                    ),
-                    on_click=lambda e: handle_download_choice(e, "all"),
-                )
-            )
-
-            dialog_content.append(
-                ft.Row(
-                    download_buttons,
-                    alignment=ft.MainAxisAlignment.CENTER,
-                    spacing=10,
-                    wrap=True,
-                )
-            )
-
-            dialog = ft.AlertDialog(
-                modal=True,
-                title=ft.Text(
-                    f"Download {details.name}",
-                    size=20,
-                    weight=ft.FontWeight.BOLD,
-                ),
-                content=ft.Container(
-                    content=ft.Column(
-                        dialog_content,
-                        spacing=20,
-                        scroll=ft.ScrollMode.AUTO,
-                        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                    ),
-                    width=min(400, self.page.width * 0.8),
-                    height=min(600, self.page.height * 0.8),
-                    padding=20,
-                ),
-                actions=[
-                    ft.TextButton("Cancel", on_click=close_dialog),
-                ],
-                actions_alignment=ft.MainAxisAlignment.END,
-                content_padding=10,
-                inset_padding=20,
-            )
-
-            self.page.dialog = dialog
-            dialog.open = True
-            self.page.update()
-
-        # Single download button at the bottom
-        ft.Container(
-            content=ft.Row(
-                [
-                    ft.ElevatedButton(
-                        content=ft.Row(
-                            [
-                                ft.Icon(ft.icons.DOWNLOAD, size=20),
-                                ft.Text("Download", size=16, weight=ft.FontWeight.W_500),
-                            ],
-                            spacing=8,
-                        ),
-                        style=ft.ButtonStyle(
-                            bgcolor=ft.colors.BLUE_700,
-                            color=ft.colors.WHITE,
-                        ),
-                        on_click=handle_download_click,
-                    ),
-                ],
-                alignment=ft.MainAxisAlignment.CENTER,
-            ),
-            padding=20,
-        )
 
         details_content = ft.Column(
             [
@@ -909,7 +689,6 @@ class DoujindesuApp:
                 ),
                 ft.ResponsiveRow(
                     [
-                        # Left column - Image
                         ft.Column(
                             [
                                 details_image_container,
@@ -917,7 +696,6 @@ class DoujindesuApp:
                             col={"sm": 12, "md": 4},
                             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                         ),
-                        # Right column - Details
                         ft.Column(
                             [
                                 ft.Container(
@@ -1032,29 +810,9 @@ class DoujindesuApp:
                     ],
                     alignment=ft.MainAxisAlignment.CENTER,
                 ),
-                # Single download button at the bottom
                 ft.Container(
                     content=ft.Row(
-                        [
-                            ft.ElevatedButton(
-                                content=ft.Row(
-                                    [
-                                        ft.Icon(ft.icons.DOWNLOAD, size=20),
-                                        ft.Text(
-                                            "Download",
-                                            size=16,
-                                            weight=ft.FontWeight.W_500,
-                                        ),
-                                    ],
-                                    spacing=8,
-                                ),
-                                style=ft.ButtonStyle(
-                                    bgcolor=ft.colors.BLUE_700,
-                                    color=ft.colors.WHITE,
-                                ),
-                                on_click=handle_download_click,
-                            ),
-                        ],
+                        [download_btn],
                         alignment=ft.MainAxisAlignment.CENTER,
                     ),
                     padding=20,
@@ -1065,10 +823,12 @@ class DoujindesuApp:
         )
 
         self.details_view.content = details_content
-        self.search_results.visible = False
+
+        self.main_view.visible = False
+        self.search_results_view.visible = False
         self.details_view.visible = True
-        self.details_view.update()
-        self.search_results.update()
+
+        self.page.update()
 
     def show_search_results(self, e):
         """Show search results view and hide details view."""
@@ -1092,17 +852,18 @@ class DoujindesuApp:
         pdf_path = os.path.join(self.result_folder, safe_title)
 
         ImageToPDFConverter(images, output_pdf_file=pdf_path).convert_images_to_pdf(images, pdf_path)
-        self.status_text.value = f"PDF created: {pdf_path}"
-        self.status_text.update()
+        self.main_status_text.value = f"PDF created: {pdf_path}"
+        self.page.update()
 
     def handle_search(self, e):
         query = self.search_query.value
         if not query:
-            self.status_text.value = "Please enter a manga name to search."
-            self.status_text.update()
+            self.main_status_text.value = "Please enter a manga name to search."
+            self.main_status_text.visible = True
+            self.page.update()
             return
 
-        self.loading_animation.content.controls[1].value = "Searching..."
+        self.loading_animation.value = "Searching..."
         self.loading_animation.visible = True
         self.loading_animation.update()
 
@@ -1111,8 +872,13 @@ class DoujindesuApp:
             self.results = search_result.results if search_result else []
             self.next_page_url = search_result.next_page_url if search_result else None
             self.previous_page_url = search_result.previous_page_url if search_result else None
+
+            self.main_view.visible = False
+            self.details_view.visible = False
+            self.search_results_view.visible = True
+            self.search_results.visible = True
+
             self.update_search_results()
-            self.show_search_results_view()
         finally:
             self.loading_animation.visible = False
             self.loading_animation.update()
@@ -1120,8 +886,9 @@ class DoujindesuApp:
     def handle_download_by_url(self, e):
         url = self.url_input.value
         if not url:
-            self.status_text.value = "Please enter a manga URL to download."
-            self.status_text.update()
+            self.main_status_text.value = "Please enter a manga URL to download."
+            self.main_status_text.visible = True
+            self.page.update()
             return
 
         try:
@@ -1205,13 +972,11 @@ class DoujindesuApp:
                 elif choice == "all":
                     self.download_manga(e, url, all_chapters=True)
 
-            # Create dialog content based on chapter count
             dialog_content = [
                 ft.Text(f"Found {len(chapters)} chapters", size=16),
                 ft.Divider(),
             ]
 
-            # Only show chapter selector and range options if multiple chapters exist
             if len(chapters) > 1:
                 dialog_content.extend(
                     [
@@ -1226,7 +991,6 @@ class DoujindesuApp:
                     ]
                 )
 
-            # Create buttons based on chapter count
             download_buttons = []
             if len(chapters) > 1:
                 download_buttons.extend(
@@ -1262,7 +1026,6 @@ class DoujindesuApp:
                     ]
                 )
 
-            # Always add Download All button
             download_buttons.append(
                 ft.ElevatedButton(
                     content=ft.Row(
@@ -1345,13 +1108,15 @@ class DoujindesuApp:
         self.download_button.disabled = True
         self.download_button.update()
 
-        # Get correct control indices based on our container structure
-        progress_text = self.download_container.content.controls[1]  # Changed from 2
-        progress_bar = self.download_container.content.controls[2]  # Changed from 3
-        image_progress = self.download_container.content.controls[3]  # Changed from 4
+        progress_text = self.download_container.content.controls[1]
+        progress_bar = self.download_container.content.controls[2]
+        image_progress = self.download_container.content.controls[3]
 
         self.download_container.visible = True
         self.download_container.update()
+
+        def get_title(manga: Doujindesu):
+            return "-".join(manga.soup.title.text.split("-")[:-1]).strip()
 
         try:
             manga = Doujindesu(url)
@@ -1361,7 +1126,6 @@ class DoujindesuApp:
             self.download_container.update()
 
             if chapter_index:
-                # Download specific chapter
                 chapter_url = chapters[int(chapter_index) - 1]
                 progress_text.value = f"Downloading Chapter {chapter_index}"
                 progress_text.update()
@@ -1372,16 +1136,15 @@ class DoujindesuApp:
                 manga.url = chapter_url
                 images = manga.get_all_images()
                 if images:
-                    image_progress.value = f"Processing {len(images)} images"
+                    image_progress.value = f"Processing {len(images)} images..."
                     image_progress.update()
-                    title = "-".join(manga.soup.title.text.split("-")[:-1]).strip()
-                    self.convert_images_to_pdf(images, f"{title}.pdf")
+                    title = get_title(manga)
+                    self.convert_images_to_pdf(images, f"{title} - Chapter {chapter_index}")
 
                 progress_bar.value = 1
                 progress_bar.update()
 
             elif chapter_range:
-                # Download range of chapters
                 start, end = chapter_range
                 total_chapters = end - start + 1
                 progress_bar.value = 0
@@ -1395,16 +1158,15 @@ class DoujindesuApp:
                     manga.url = chapters[chapter_num]
                     images = manga.get_all_images()
                     if images:
-                        image_progress.value = f"Processing {len(images)} images"
+                        image_progress.value = f"Processing {len(images)} images..."
                         image_progress.update()
-                        title = "-".join(manga.soup.title.text.split("-")[:-1]).strip()
-                        self.convert_images_to_pdf(images, f"{title}.pdf")
+                        title = get_title(manga)
+                        self.convert_images_to_pdf(images, f"{title} - Chapter {chapter_num + 1}")
 
                         progress_bar.value = idx
                         progress_bar.update()
 
             elif all_chapters:
-                # Download all chapters
                 total_chapters = len(chapters)
                 progress_bar.value = 0
                 progress_bar.max = total_chapters
@@ -1417,16 +1179,17 @@ class DoujindesuApp:
                     manga.url = chapter_url
                     images = manga.get_all_images()
                     if images:
-                        image_progress.value = f"Processing {len(images)} images"
+                        image_progress.value = f"Processing {len(images)} images..."
                         image_progress.update()
                         title = "-".join(manga.soup.title.text.split("-")[:-1]).strip()
-                        self.convert_images_to_pdf(images, f"{title}.pdf")
+                        filename = f"{title} - Chapter {idx}" if len(chapters) > 1 else title
+                        self.convert_images_to_pdf(images, filename)
 
                         progress_bar.value = idx
                         progress_bar.update()
 
             self.snackbar.bgcolor = ft.colors.GREEN_700
-            self.snackbar.content = ft.Text("Download completed!", color=ft.colors.WHITE)
+            self.snackbar.content = ft.Text("Download completed successfully!", color=ft.colors.WHITE)
             self.page.show_snack_bar(self.snackbar)
 
         except Exception as e:
@@ -1439,19 +1202,16 @@ class DoujindesuApp:
             self.download_button.disabled = False
             self.download_button.update()
 
-            # Update search results download icons
             if self.search_results.controls:
                 for result in self.search_results.controls:
                     download_icon = result.content.controls[-1]
                     download_icon.disabled = False
                     download_icon.update()
 
-            # Update details view download button
             if self.details_view.visible and self.details_view.content:
-                # Get the download button from the last container in details_content
-                download_container = self.details_view.content.controls[-1]  # Container
-                download_row = download_container.content  # Row
-                download_btn = download_row.controls[0]  # Button
+                download_container = self.details_view.content.controls[-1]
+                download_row = download_container.content
+                download_btn = download_row.controls[0]
                 download_btn.disabled = False
                 download_btn.update()
 
@@ -1459,60 +1219,107 @@ class DoujindesuApp:
             self.download_container.update()
 
     def build_main_view(self):
-        return ft.Container(
-            content=ft.Column(
-                [
-                    ft.Container(
-                        content=self.logo,
-                        alignment=ft.alignment.center,
-                        animate=ft.animation.Animation(300, "easeOut"),
-                        padding=20,
-                    ),
-                    ft.Container(
-                        content=ft.Column(
-                            [
-                                ft.ResponsiveRow(
-                                    [
-                                        ft.Column(
-                                            [self.search_query, self.url_input],
-                                            col={"sm": 12, "md": 8, "lg": 6},
-                                            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                                        ),
-                                    ],
-                                    alignment=ft.MainAxisAlignment.CENTER,
-                                ),
-                                ft.ResponsiveRow(
-                                    [
-                                        ft.Column(
-                                            [self.search_button, self.download_button],
-                                            col={"sm": 12, "md": 8, "lg": 6},
-                                            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                                        ),
-                                    ],
-                                    alignment=ft.MainAxisAlignment.CENTER,
-                                ),
-                            ],
-                            alignment=ft.MainAxisAlignment.CENTER,
-                            spacing=20,
+        form_card = ft.Card(
+            content=ft.Container(
+                content=ft.Column(
+                    [
+                        ft.Container(
+                            content=ft.Column(
+                                [
+                                    ft.Text(
+                                        "Search Manga" if self.selected_nav_index == 0 else "Download Manga",
+                                        size=28,
+                                        weight=ft.FontWeight.BOLD,
+                                        color=ft.colors.ON_SURFACE,
+                                    ),
+                                    ft.Text(
+                                        "Find your favorite manga"
+                                        if self.selected_nav_index == 0
+                                        else "Download manga using URL",
+                                        size=16,
+                                        color=ft.colors.ON_SURFACE_VARIANT,
+                                    ),
+                                ],
+                                spacing=4,
+                                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                            ),
+                            padding=ft.padding.only(bottom=20),
                         ),
-                        padding=ft.padding.all(30),
-                        border_radius=12,
-                        gradient=ft.LinearGradient(
-                            begin=ft.alignment.top_center,
-                            end=ft.alignment.bottom_center,
-                            colors=[
-                                ft.colors.with_opacity(0.05, ft.colors.WHITE),
-                                ft.colors.with_opacity(0.02, ft.colors.WHITE),
-                            ],
+                        ft.Container(
+                            content=ft.Column(
+                                [
+                                    ft.ResponsiveRow(
+                                        [
+                                            ft.Container(
+                                                content=ft.Column(
+                                                    [
+                                                        self.search_query
+                                                        if self.selected_nav_index == 0
+                                                        else self.url_input
+                                                    ],
+                                                    spacing=10,
+                                                ),
+                                                col={"sm": 12, "md": 12, "lg": 12},
+                                                padding=10,
+                                            ),
+                                        ],
+                                    ),
+                                    ft.ResponsiveRow(
+                                        [
+                                            ft.Container(
+                                                content=ft.Column(
+                                                    [
+                                                        self.search_button
+                                                        if self.selected_nav_index == 0
+                                                        else self.download_button
+                                                    ],
+                                                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                                                ),
+                                                col={"sm": 12, "md": 12, "lg": 12},
+                                                padding=10,
+                                            ),
+                                        ],
+                                    ),
+                                    ft.Container(
+                                        content=self.main_status_text,
+                                        padding=10,
+                                        alignment=ft.alignment.center,
+                                    ),
+                                ],
+                                spacing=10,
+                            ),
+                            padding=ft.padding.symmetric(horizontal=20),
                         ),
-                    ),
-                ],
-                expand=True,
-                alignment=ft.MainAxisAlignment.CENTER,
-                spacing=30,
+                    ],
+                    spacing=20,
+                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                ),
+                padding=40,
+                border_radius=12,
             ),
+            elevation=0,
+            color=ft.colors.SURFACE_VARIANT,
+        )
+
+        return ft.Column(
+            [
+                ft.Container(
+                    content=self.logo,
+                    alignment=ft.alignment.center,
+                    animate=ft.animation.Animation(300, "easeOut"),
+                    padding=ft.padding.symmetric(vertical=40),
+                    height=min(300, self.page.height * 0.3) if self.page else 300,
+                ),
+                ft.Container(
+                    content=form_card,
+                    padding=ft.padding.symmetric(horizontal=20),
+                    width=min(600, self.page.width * 0.9) if self.page else 600,
+                ),
+            ],
             expand=True,
-            padding=40,
+            alignment=ft.MainAxisAlignment.START,
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+            spacing=20,
         )
 
     def show_main_view(self, e=None):
@@ -1534,41 +1341,121 @@ class DoujindesuApp:
         self.page.update()
 
     def build(self):
-        return ft.ResponsiveRow(
-            [
-                ft.Container(
-                    content=self.nav_rail,
-                    col={"sm": 2, "md": 1},
-                    border=ft.border.only(right=ft.BorderSide(1, ft.colors.OUTLINE)),
-                ),
-                ft.Container(
-                    content=ft.Stack(
-                        [
-                            self.main_view,
-                            self.url_download_view,
-                            self.search_results_view,
-                            self.details_view,
-                            self.loading_animation,
-                            self.download_container,
-                        ],
-                    ),
-                    col={"sm": 10, "md": 11},
-                    expand=True,
-                ),
-            ],
-            expand=True,
-        )
+        pass
 
     def set_page(self, page):
         self.page = page
-        self.page.window_maximized = True
+
+        self.page.theme = ft.Theme(
+            color_scheme_seed=ft.colors.BLUE,
+            use_material3=True,
+        )
         self.page.theme_mode = "dark"
         self.theme_mode = ft.ThemeMode.DARK
 
-        self.main_view.visible = True
-        self.url_download_view.visible = False
-        self.search_results_view.visible = False
-        self.details_view.visible = False
+        def on_resize(e):
+            self.main_view.content = self.build_main_view()
+            self.page.update()
+
+        self.page.on_resize = on_resize
+
+        self.main_view = ft.Container(
+            content=self.build_main_view(),
+            visible=True,
+            expand=True,
+        )
+
+        self.search_results_view = ft.Container(
+            content=ft.Column(
+                [
+                    ft.ResponsiveRow(
+                        [
+                            ft.Container(
+                                content=ft.Row(
+                                    [
+                                        ft.IconButton(
+                                            icon=ft.icons.ARROW_BACK,
+                                            icon_color=ft.colors.PRIMARY,
+                                            tooltip="Back to Search",
+                                            on_click=self.show_main_view,
+                                        ),
+                                        ft.Text("Search Results", size=20, weight=ft.FontWeight.BOLD),
+                                    ],
+                                    alignment=ft.MainAxisAlignment.START,
+                                ),
+                                col={"sm": 12},
+                                padding=10,
+                            ),
+                        ]
+                    ),
+                    ft.Container(
+                        content=ft.Row(
+                            [self.previous_button, self.next_button],
+                            alignment=ft.MainAxisAlignment.CENTER,
+                            spacing=10,
+                        ),
+                        padding=ft.padding.only(bottom=20),
+                    ),
+                    ft.Container(
+                        content=self.search_status_text,
+                        padding=10,
+                    ),
+                    ft.Container(
+                        content=self.search_results,
+                        expand=True,
+                        padding=ft.padding.symmetric(
+                            horizontal=max(10, min(20, self.page.width * 0.03)) if self.page else 20,
+                        ),
+                    ),
+                    ft.Container(
+                        content=ft.Row(
+                            [self.previous_button, self.next_button],
+                            alignment=ft.MainAxisAlignment.CENTER,
+                            spacing=10,
+                        ),
+                        padding=ft.padding.symmetric(vertical=20),
+                    ),
+                ],
+                spacing=20,
+                scroll=ft.ScrollMode.AUTO,
+                expand=True,
+            ),
+            visible=False,
+            expand=True,
+        )
+
+        self.details_view = ft.Container(
+            content=None,
+            padding=40,
+            bgcolor=ft.colors.SURFACE_VARIANT,
+            border_radius=28,
+            visible=False,
+            expand=True,
+        )
+
+        self.page.add(
+            ft.Row(
+                [
+                    self.nav_rail,
+                    ft.Container(
+                        content=ft.Stack(
+                            [
+                                self.main_view,
+                                self.search_results_view,
+                                self.details_view,
+                                self.loading_animation,
+                                self.download_container,
+                            ],
+                        ),
+                        expand=True,
+                        padding=ft.padding.symmetric(
+                            horizontal=max(10, min(20, self.page.width * 0.02)) if self.page else 20,
+                        ),
+                    ),
+                ],
+                expand=True,
+            )
+        )
 
         self.page.update()
 
@@ -1580,7 +1467,6 @@ class DoujindesuApp:
         self.page.update()
 
     def display_search_results(self, results: list[Result]):
-        # Get text color based on theme
         text_color = ft.colors.GREY_800 if self.theme_mode == ft.ThemeMode.LIGHT else ft.colors.GREY_400
 
         results_list = []
@@ -1638,12 +1524,12 @@ class DoujindesuApp:
 
     def handle_image_hover(self, e):
         """Handle hover effect for manga thumbnails."""
-        overlay = e.control.content.controls[1]  # Get the overlay container
-        if e.data == "true":  # Mouse entered
+        overlay = e.control.content.controls[1]
+        if e.data == "true":
             overlay.blur = 0
             overlay.bgcolor = ft.colors.with_opacity(0, ft.colors.BLACK)
             overlay.visible = False
-        else:  # Mouse exited
+        else:
             overlay.blur = 10 if self.blur_thumbnails else 0
             overlay.bgcolor = ft.colors.with_opacity(0.3 if self.blur_thumbnails else 0, ft.colors.BLACK)
             overlay.visible = self.blur_thumbnails
@@ -1651,7 +1537,7 @@ class DoujindesuApp:
 
     def handle_image_click(self, e):
         """Handle click effect for manga thumbnails."""
-        overlay = e.control.content.controls[1]  # Get the overlay container
+        overlay = e.control.content.controls[1]
         overlay.blur = 0
         overlay.bgcolor = ft.colors.with_opacity(0, ft.colors.BLACK)
         overlay.update()
@@ -1661,11 +1547,10 @@ class DoujindesuApp:
         self.blur_thumbnails = not self.blur_thumbnails
         e.control.selected = self.blur_thumbnails
 
-        # Update all thumbnails in search results
         if self.search_results.controls:
             for result in self.search_results.controls:
                 try:
-                    overlay = result.content.controls[0].content.controls[1]  # Get overlay container
+                    overlay = result.content.controls[0].content.controls[1]
                     overlay.visible = self.blur_thumbnails
                     overlay.blur = 10 if self.blur_thumbnails else 0
                     overlay.bgcolor = ft.colors.with_opacity(0.3 if self.blur_thumbnails else 0, ft.colors.BLACK)
@@ -1673,15 +1558,13 @@ class DoujindesuApp:
                 except (AttributeError, IndexError):
                     continue
 
-        # Update details view if visible
         if self.details_view.visible and self.details_view.content:
             try:
-                # Navigate through the control hierarchy to find the image overlay
                 details_content = self.details_view.content
-                responsive_row = details_content.controls[1]  # Get the ResponsiveRow
-                image_column = responsive_row.controls[0]  # Get the first column (image column)
-                image_container = image_column.controls[0]  # Get the image container
-                image_stack = image_container.content  # Get the Stack
+                responsive_row = details_content.controls[1]
+                image_column = responsive_row.controls[0]
+                image_container = image_column.controls[0]
+                image_stack = image_container.content
                 overlay = image_stack.controls[1]
 
                 overlay.visible = self.blur_thumbnails
@@ -1691,4 +1574,256 @@ class DoujindesuApp:
             except (AttributeError, IndexError):
                 pass
 
+        self.page.update()
+
+    def handle_download_click(self, e, result):
+        """Handle download button click from details view."""
+        manga = Doujindesu(result.url)
+        chapters = manga.get_all_chapters()
+
+        if not chapters:
+            self.snackbar.bgcolor = ft.colors.RED_700
+            self.snackbar.content = ft.Text("No chapters found!", color=ft.colors.WHITE)
+            self.page.show_snack_bar(self.snackbar)
+            return
+
+        if len(chapters) == 1:
+            self.download_manga(e, result.url, all_chapters=True)
+            return
+
+        input_style = {
+            "border_radius": 8,
+            "border_color": ft.colors.OUTLINE,
+            "focused_border_color": ft.colors.PRIMARY,
+            "cursor_color": ft.colors.PRIMARY,
+            "text_size": 16,
+            "content_padding": ft.padding.symmetric(horizontal=16, vertical=12),
+            "filled": True,
+            "bgcolor": ft.colors.SURFACE,
+        }
+
+        start_chapter = ft.TextField(
+            label="Start Chapter",
+            hint_text="e.g. 1",
+            border=ft.InputBorder.OUTLINE,
+            width=150,
+            keyboard_type=ft.KeyboardType.NUMBER,
+            **input_style,
+        )
+
+        end_chapter = ft.TextField(
+            label="End Chapter",
+            hint_text=f"e.g. {len(chapters)}",
+            border=ft.InputBorder.OUTLINE,
+            width=150,
+            keyboard_type=ft.KeyboardType.NUMBER,
+            **input_style,
+        )
+
+        chapter_selector = ft.Dropdown(
+            label="Select Chapter",
+            hint_text="Choose a chapter",
+            border=ft.InputBorder.OUTLINE,
+            focused_border_color=ft.colors.PRIMARY,
+            focused_color=ft.colors.PRIMARY,
+            text_size=16,
+            content_padding=16,
+            options=[ft.dropdown.Option(f"Chapter {i+1}") for i in range(len(chapters))],
+            width=300,
+            **input_style,
+        )
+
+        def close_dialog(e):
+            dialog.open = False
+            self.page.update()
+
+        def handle_download_choice(e, choice: str):
+            dialog.open = False
+            self.page.update()
+
+            if choice == "single" and chapter_selector.value:
+                chapter_index = int(chapter_selector.value.split()[-1])
+                self.download_manga(e, result.url, chapter_index=str(chapter_index))
+            elif choice == "range":
+                try:
+                    start = int(start_chapter.value or "1")
+                    end = int(end_chapter.value or str(len(chapters)))
+                    if 1 <= start <= end <= len(chapters):
+                        self.download_manga(e, result.url, chapter_range=(start, end))
+                    else:
+                        self.snackbar.bgcolor = ft.colors.RED_700
+                        self.snackbar.content = ft.Text(
+                            f"Invalid range! Please enter numbers between 1 and {len(chapters)}",
+                            color=ft.colors.WHITE,
+                        )
+                        self.page.show_snack_bar(self.snackbar)
+                except ValueError:
+                    self.snackbar.bgcolor = ft.colors.RED_700
+                    self.snackbar.content = ft.Text(
+                        "Please enter valid numbers for chapter range!",
+                        color=ft.colors.WHITE,
+                    )
+                    self.page.show_snack_bar(self.snackbar)
+            elif choice == "all":
+                self.download_manga(e, result.url, all_chapters=True)
+
+        button_style = {
+            "style": ft.ButtonStyle(
+                shape={
+                    ft.MaterialState.DEFAULT: ft.RoundedRectangleBorder(radius=8),
+                },
+                padding=ft.padding.symmetric(horizontal=24, vertical=12),
+                animation_duration=200,
+                overlay_color=ft.colors.with_opacity(0.1, ft.colors.ON_PRIMARY),
+            ),
+            "height": 44,
+        }
+
+        download_buttons = [
+            ft.ElevatedButton(
+                content=ft.Row(
+                    [
+                        ft.Icon(ft.icons.DOWNLOAD_ROUNDED, size=20, color=ft.colors.ON_PRIMARY),
+                        ft.Text("Download Single", size=14, weight=ft.FontWeight.W_500),
+                    ],
+                    tight=True,
+                    spacing=8,
+                ),
+                bgcolor=ft.colors.PRIMARY,
+                color=ft.colors.ON_PRIMARY,
+                on_click=lambda e: handle_download_choice(e, "single"),
+                **button_style,
+            ),
+            ft.ElevatedButton(
+                content=ft.Row(
+                    [
+                        ft.Icon(ft.icons.DOWNLOAD_FOR_OFFLINE_ROUNDED, size=20, color=ft.colors.ON_PRIMARY),
+                        ft.Text("Download Range", size=14, weight=ft.FontWeight.W_500),
+                    ],
+                    tight=True,
+                    spacing=8,
+                ),
+                bgcolor=ft.colors.PRIMARY,
+                color=ft.colors.ON_PRIMARY,
+                on_click=lambda e: handle_download_choice(e, "range"),
+                **button_style,
+            ),
+            ft.ElevatedButton(
+                content=ft.Row(
+                    [
+                        ft.Icon(ft.icons.CLOUD_DOWNLOAD_ROUNDED, size=20, color=ft.colors.ON_PRIMARY),
+                        ft.Text("Download All", size=14, weight=ft.FontWeight.W_500),
+                    ],
+                    tight=True,
+                    spacing=8,
+                ),
+                bgcolor=ft.colors.PRIMARY,
+                color=ft.colors.ON_PRIMARY,
+                on_click=lambda e: handle_download_choice(e, "all"),
+                **button_style,
+            ),
+        ]
+
+        dialog_content = ft.Container(
+            content=ft.Column(
+                [
+                    ft.Container(
+                        content=ft.Row(
+                            [
+                                ft.Icon(
+                                    ft.icons.MENU_BOOK_ROUNDED,
+                                    color=ft.colors.PRIMARY,
+                                    size=24,
+                                ),
+                                ft.Text(
+                                    f"{len(chapters)} chapters available",
+                                    size=16,
+                                    weight=ft.FontWeight.W_500,
+                                    color=ft.colors.ON_SURFACE,
+                                ),
+                            ],
+                            spacing=8,
+                        ),
+                        padding=ft.padding.only(bottom=16),
+                    ),
+                    ft.Divider(height=1, color=ft.colors.OUTLINE),
+                    ft.Container(
+                        content=ft.Column(
+                            [
+                                ft.Text(
+                                    "Download Single Chapter",
+                                    size=14,
+                                    weight=ft.FontWeight.W_500,
+                                    color=ft.colors.ON_SURFACE_VARIANT,
+                                ),
+                                chapter_selector,
+                            ],
+                            spacing=8,
+                        ),
+                        padding=ft.padding.symmetric(vertical=16),
+                    ),
+                    ft.Container(
+                        content=ft.Column(
+                            [
+                                ft.Text(
+                                    "Download Range",
+                                    size=14,
+                                    weight=ft.FontWeight.W_500,
+                                    color=ft.colors.ON_SURFACE_VARIANT,
+                                ),
+                                ft.Row(
+                                    [
+                                        start_chapter,
+                                        ft.Text("to", color=ft.colors.ON_SURFACE_VARIANT),
+                                        end_chapter,
+                                    ],
+                                    alignment=ft.MainAxisAlignment.CENTER,
+                                    spacing=16,
+                                ),
+                            ],
+                            spacing=8,
+                        ),
+                        padding=ft.padding.symmetric(vertical=16),
+                    ),
+                    ft.Container(
+                        content=ft.Row(
+                            download_buttons,
+                            alignment=ft.MainAxisAlignment.END,
+                            spacing=8,
+                            wrap=True,
+                        ),
+                        padding=ft.padding.only(top=16),
+                    ),
+                ],
+                scroll=ft.ScrollMode.AUTO,
+                spacing=0,
+            ),
+            padding=24,
+            width=min(400, self.page.width * 0.9),
+        )
+
+        dialog = ft.AlertDialog(
+            modal=True,
+            title=ft.Text(
+                f"Download {result.name}",
+                size=20,
+                weight=ft.FontWeight.BOLD,
+                color=ft.colors.ON_SURFACE,
+            ),
+            content=dialog_content,
+            actions=[
+                ft.TextButton(
+                    text="Cancel",
+                    on_click=close_dialog,
+                    style=ft.ButtonStyle(
+                        color=ft.colors.PRIMARY,
+                    ),
+                ),
+            ],
+            actions_alignment=ft.MainAxisAlignment.END,
+            shape=ft.RoundedRectangleBorder(radius=12),
+        )
+
+        self.page.dialog = dialog
+        dialog.open = True
         self.page.update()

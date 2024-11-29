@@ -3,12 +3,25 @@ API for the Doudesu.
 """
 
 from fastapi import FastAPI, HTTPException, Query
+from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 
 from ..core import Doujindesu
 from ..models.manga import DetailsResult, SearchResult
 
 app = FastAPI(title="Doudesu API", description="API for doudesu library", version="1.0.0")
+
+
+class ChaptersResult(BaseModel):
+    """Result for chapters"""
+
+    chapters: list[str]
+
+
+class ImagesResult(BaseModel):
+    """Result for images"""
+
+    images: list[str]
 
 
 @app.get("/search/{keyword}", response_model=SearchResult)
@@ -38,10 +51,10 @@ async def get_manga_details(url: str):
             raise HTTPException(status_code=404, detail="Manga not found")
         return details
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
-@app.get("/manga/{url:path}/chapters")
+@app.get("/chapters/{url:path}", response_model=ChaptersResult)
 async def get_chapters(url: str):
     """Get all chapters for a manga"""
     try:
@@ -51,10 +64,10 @@ async def get_chapters(url: str):
             raise HTTPException(status_code=404, detail="No chapters found")
         return {"chapters": chapters}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
-@app.get("/chapter/{url:path}/images")
+@app.get("/images/{url:path}", response_model=ImagesResult)
 async def get_chapter_images(url: str):
     """Get all images from a chapter"""
     try:
@@ -64,4 +77,10 @@ async def get_chapter_images(url: str):
             raise HTTPException(status_code=404, detail="No images found")
         return {"images": images}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
+
+@app.get("/", include_in_schema=False)
+def redirect_to_docs():
+    """Redirect to docs"""
+    return RedirectResponse(url="/docs")
