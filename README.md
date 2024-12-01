@@ -5,10 +5,10 @@
 </div>
 
 <div align="center">
-![Python Version](https://img.shields.io/pypi/pyversions/doudesu?logo=python)
-![License](https://img.shields.io/pypi/l/doudesu?logo=gnu)
-![PyPI Version](https://img.shields.io/pypi/v/doudesu?logo=pypi)
-![Downloads](https://img.shields.io/pypi/dm/doudesu?logo=pypi)
+    <img src="https://img.shields.io/pypi/pyversions/doudesu?logo=python" alt="Python Version">
+    <img src="https://img.shields.io/pypi/l/doudesu?logo=gnu" alt="License">
+    <img src="https://img.shields.io/pypi/v/doudesu?logo=pypi" alt="PyPI Version">
+    <img src="https://img.shields.io/pypi/dm/doudesu?logo=pypi" alt="Downloads">
 </div>
 
 ## Features

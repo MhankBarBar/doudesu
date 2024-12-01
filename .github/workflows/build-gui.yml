@@ -13,17 +13,32 @@ jobs:
       matrix:
         include:
           - os: windows-latest
-            output_name: doudesu-gui.exe
-            asset_name: doudesu-gui-windows.exe
+            output_name: doudesu-win64.exe
+            asset_name: doudesu-gui-windows-x64.exe
             tls_client_file: tls-client-64.dll
+            arch: x64
+
           - os: ubuntu-latest
-            output_name: doudesu-gui
-            asset_name: doudesu-gui-linux
+            output_name: doudesu-x86
+            asset_name: doudesu-gui-linux-x86
+            tls_client_file: tls-client-x86.so
+            arch: x86
+          - os: ubuntu-latest
+            output_name: doudesu-amd64
+            asset_name: doudesu-gui-linux-amd64
             tls_client_file: tls-client-amd64.so
+            arch: amd64
+
           - os: macos-latest
-            output_name: doudesu-gui
-            asset_name: doudesu-gui-macos
+            output_name: doudesu-x86
+            asset_name: doudesu-gui-macos-x86
             tls_client_file: tls-client-x86.dylib
+            arch: x86
+          - os: macos-latest
+            output_name: doudesu-arm64
+            asset_name: doudesu-gui-macos-arm64
+            tls_client_file: tls-client-arm64.dylib
+            arch: arm64
 
     runs-on: ${{ matrix.os }}
 
@@ -61,6 +76,7 @@ jobs:
         --icon doudesu/assets/images/logo.png ^
         --add-data "doudesu/assets;doudesu/assets" ^
         --add-binary "${{ env.TLS_CLIENT_PATH }}/dependencies/${{ matrix.tls_client_file }};tls_client/dependencies" ^
+        --target-architecture ${{ matrix.arch }} ^
         --hidden-import flet_core ^
         --hidden-import flet_runtime ^
         --hidden-import requests ^
@@ -80,9 +96,10 @@ jobs:
       if: matrix.os != 'windows-latest'
       run: |
         python -m PyInstaller --name ${{ matrix.output_name }} --onefile --windowed \
-        --icon doudesu/assets/images/logo.ico \
+        --icon doudesu/assets/images/logo.png \
         --add-data "doudesu/assets:doudesu/assets" \
         --add-binary "${{ env.TLS_CLIENT_PATH }}/dependencies/${{ matrix.tls_client_file }}:tls_client/dependencies" \
+        --target-architecture ${{ matrix.arch }} \
         --hidden-import flet_core \
         --hidden-import flet_runtime \
         --hidden-import requests \
@@ -117,8 +134,10 @@ jobs:
       uses: softprops/action-gh-release@v1
       with:
         files: |
-          doudesu-gui-windows.exe/doudesu-gui.exe
-          doudesu-gui-linux/doudesu-gui
-          doudesu-gui-macos/doudesu-gui
+          doudesu-gui-windows-x64.exe/doudesu-win64.exe
+          doudesu-gui-linux-x86/doudesu-x86
+          doudesu-gui-linux-amd64/doudesu-amd64
+          doudesu-gui-macos-x86/doudesu-x86
+          doudesu-gui-macos-arm64/doudesu-arm64
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
