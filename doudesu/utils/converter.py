@@ -4,6 +4,7 @@ from io import BytesIO
 
 import requests
 from PIL import Image
+from reportlab.pdfgen import canvas
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
@@ -75,8 +76,7 @@ class ImageToPDFConverter:
 
             with ThreadPoolExecutor(max_workers=self.num_threads) as executor:
                 future_to_url = {
-                    executor.submit(self.downloader.download_single_image, url_data): url_data
-                    for url_data in chunk_urls
+                    executor.submit(self.downloader.download_single_image, url_data): url_data for url_data in chunk_urls
                 }
 
                 for future in as_completed(future_to_url):
@@ -93,8 +93,6 @@ class ImageToPDFConverter:
         downloaded_images = self.download_images_threaded(images)
 
         try:
-            from reportlab.pdfgen import canvas
-
             with open(output_pdf_file, "wb") as pdf_file:
                 pdf_canvas = canvas.Canvas(pdf_file)
 

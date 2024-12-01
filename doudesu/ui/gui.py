@@ -48,8 +48,7 @@ def run_gui(browser_mode: bool = False):
             ft.app(target=main, assets_dir=assets_dir)
     except ImportError:
         console.print(
-            "[red]GUI dependencies not installed. Please install with:[/red]"
-            "\n[yellow]pip install doudesu\[gui][/yellow]"  # noqa: W605
+            "[red]GUI dependencies not installed. Please install with:[/red]" "\n[yellow]pip install doudesu\[gui][/yellow]"  # noqa: W605
         )
         sys.exit(1)
 
@@ -1105,8 +1104,10 @@ class DoujindesuApp:
             return
 
         self.is_downloading = True
-        self.download_button.disabled = True
-        self.download_button.update()
+
+        if hasattr(self, "download_button") and self.download_button.visible:
+            self.download_button.disabled = True
+            self.download_button.update()
 
         progress_text = self.download_container.content.controls[1]
         progress_bar = self.download_container.content.controls[2]
@@ -1189,7 +1190,9 @@ class DoujindesuApp:
                         progress_bar.update()
 
             self.snackbar.bgcolor = ft.colors.GREEN_700
-            self.snackbar.content = ft.Text("Download completed successfully!", color=ft.colors.WHITE)
+            self.snackbar.content = ft.Text(
+                "Download completed, downloaded file(s) saved in result directory!", color=ft.colors.WHITE
+            )
             self.page.show_snack_bar(self.snackbar)
 
         except Exception as e:
@@ -1199,8 +1202,10 @@ class DoujindesuApp:
 
         finally:
             self.is_downloading = False
-            self.download_button.disabled = False
-            self.download_button.update()
+
+            if hasattr(self, "download_button") and self.download_button.visible:
+                self.download_button.disabled = False
+                self.download_button.update()
 
             if self.search_results.controls:
                 for result in self.search_results.controls:
@@ -1252,11 +1257,7 @@ class DoujindesuApp:
                                         [
                                             ft.Container(
                                                 content=ft.Column(
-                                                    [
-                                                        self.search_query
-                                                        if self.selected_nav_index == 0
-                                                        else self.url_input
-                                                    ],
+                                                    [self.search_query if self.selected_nav_index == 0 else self.url_input],
                                                     spacing=10,
                                                 ),
                                                 col={"sm": 12, "md": 12, "lg": 12},
@@ -1594,7 +1595,6 @@ class DoujindesuApp:
         input_style = {
             "border_radius": 8,
             "border_color": ft.colors.OUTLINE,
-            "focused_border_color": ft.colors.PINK,
             "cursor_color": ft.colors.PINK,
             "text_size": 16,
             "content_padding": ft.padding.symmetric(horizontal=16, vertical=12),
@@ -1630,7 +1630,6 @@ class DoujindesuApp:
             content_padding=16,
             options=[ft.dropdown.Option(f"Chapter {i+1}") for i in range(len(chapters))],
             width=300,
-            **input_style,
         )
 
         def close_dialog(e):
@@ -1667,81 +1666,37 @@ class DoujindesuApp:
             elif choice == "all":
                 self.download_manga(e, result.url, all_chapters=True)
 
-        button_style = {
-            "style": ft.ButtonStyle(
-                shape={
-                    ft.MaterialState.DEFAULT: ft.RoundedRectangleBorder(radius=8),
-                },
-                padding=ft.padding.symmetric(horizontal=24, vertical=12),
-                animation_duration=200,
-                overlay_color=ft.colors.with_opacity(0.1, ft.colors.ON_PRIMARY),
-            ),
-            "height": 44,
-        }
-
-        download_buttons = [
-            ft.ElevatedButton(
-                content=ft.Row(
-                    [
-                        ft.Icon(ft.icons.DOWNLOAD_ROUNDED, size=20, color=ft.colors.ON_PRIMARY),
-                        ft.Text("Download Single", size=14, weight=ft.FontWeight.W_500),
-                    ],
-                    tight=True,
-                    spacing=8,
-                ),
-                bgcolor=ft.colors.PINK,
-                color=ft.colors.ON_PRIMARY,
-                on_click=lambda e: handle_download_choice(e, "single"),
-                **button_style,
-            ),
-            ft.ElevatedButton(
-                content=ft.Row(
-                    [
-                        ft.Icon(ft.icons.DOWNLOAD_FOR_OFFLINE_ROUNDED, size=20, color=ft.colors.ON_PRIMARY),
-                        ft.Text("Download Range", size=14, weight=ft.FontWeight.W_500),
-                    ],
-                    tight=True,
-                    spacing=8,
-                ),
-                bgcolor=ft.colors.PINK,
-                color=ft.colors.ON_PRIMARY,
-                on_click=lambda e: handle_download_choice(e, "range"),
-                **button_style,
-            ),
-            ft.ElevatedButton(
-                content=ft.Row(
-                    [
-                        ft.Icon(ft.icons.CLOUD_DOWNLOAD_ROUNDED, size=20, color=ft.colors.ON_PRIMARY),
-                        ft.Text("Download All", size=14, weight=ft.FontWeight.W_500),
-                    ],
-                    tight=True,
-                    spacing=8,
-                ),
-                bgcolor=ft.colors.PINK,
-                color=ft.colors.ON_PRIMARY,
-                on_click=lambda e: handle_download_choice(e, "all"),
-                **button_style,
-            ),
-        ]
-
         dialog_content = ft.Container(
             content=ft.Column(
                 [
                     ft.Container(
-                        content=ft.Row(
+                        content=ft.Column(
                             [
-                                ft.Icon(
-                                    ft.icons.MENU_BOOK_ROUNDED,
-                                    color=ft.colors.PINK,
-                                    size=24,
+                                ft.Row(
+                                    [
+                                        ft.Icon(
+                                            ft.icons.MENU_BOOK_ROUNDED,
+                                            color=ft.colors.PINK,
+                                            size=24,
+                                        ),
+                                        ft.Text(
+                                            result.name,
+                                            size=16,
+                                            weight=ft.FontWeight.W_500,
+                                            color=ft.colors.ON_SURFACE,
+                                        ),
+                                    ],
+                                    alignment=ft.MainAxisAlignment.CENTER,
+                                    spacing=8,
                                 ),
                                 ft.Text(
                                     f"{len(chapters)} chapters available",
-                                    size=16,
-                                    weight=ft.FontWeight.W_500,
-                                    color=ft.colors.ON_SURFACE,
+                                    size=14,
+                                    color=ft.colors.ON_SURFACE_VARIANT,
+                                    text_align=ft.TextAlign.CENTER,
                                 ),
                             ],
+                            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                             spacing=8,
                         ),
                         padding=ft.padding.only(bottom=16),
@@ -1755,13 +1710,31 @@ class DoujindesuApp:
                                     size=14,
                                     weight=ft.FontWeight.W_500,
                                     color=ft.colors.ON_SURFACE_VARIANT,
+                                    text_align=ft.TextAlign.CENTER,
                                 ),
                                 chapter_selector,
+                                ft.ElevatedButton(
+                                    content=ft.Row(
+                                        [
+                                            ft.Icon(ft.icons.DOWNLOAD_ROUNDED, size=20),
+                                            ft.Text("Download Single", size=14),
+                                        ],
+                                        tight=True,
+                                        spacing=8,
+                                    ),
+                                    style=ft.ButtonStyle(
+                                        color=ft.colors.ON_PRIMARY,
+                                        bgcolor=ft.colors.PINK,
+                                    ),
+                                    on_click=lambda e: handle_download_choice(e, "single"),
+                                ),
                             ],
-                            spacing=8,
+                            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                            spacing=16,
                         ),
                         padding=ft.padding.symmetric(vertical=16),
                     ),
+                    ft.Divider(height=1, color=ft.colors.OUTLINE),
                     ft.Container(
                         content=ft.Column(
                             [
@@ -1770,36 +1743,61 @@ class DoujindesuApp:
                                     size=14,
                                     weight=ft.FontWeight.W_500,
                                     color=ft.colors.ON_SURFACE_VARIANT,
+                                    text_align=ft.TextAlign.CENTER,
                                 ),
                                 ft.Row(
-                                    [
-                                        start_chapter,
-                                        ft.Text("to", color=ft.colors.ON_SURFACE_VARIANT),
-                                        end_chapter,
-                                    ],
+                                    [start_chapter, ft.Text("to"), end_chapter],
                                     alignment=ft.MainAxisAlignment.CENTER,
                                     spacing=16,
                                 ),
+                                ft.ElevatedButton(
+                                    content=ft.Row(
+                                        [
+                                            ft.Icon(ft.icons.DOWNLOAD_FOR_OFFLINE_ROUNDED, size=20),
+                                            ft.Text("Download Range", size=14),
+                                        ],
+                                        tight=True,
+                                        spacing=8,
+                                    ),
+                                    style=ft.ButtonStyle(
+                                        color=ft.colors.ON_PRIMARY,
+                                        bgcolor=ft.colors.PINK,
+                                    ),
+                                    on_click=lambda e: handle_download_choice(e, "range"),
+                                ),
                             ],
-                            spacing=8,
+                            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                            spacing=16,
                         ),
                         padding=ft.padding.symmetric(vertical=16),
                     ),
+                    ft.Divider(height=1, color=ft.colors.OUTLINE),
                     ft.Container(
-                        content=ft.Row(
-                            download_buttons,
-                            alignment=ft.MainAxisAlignment.END,
-                            spacing=8,
-                            wrap=True,
+                        content=ft.ElevatedButton(
+                            content=ft.Row(
+                                [
+                                    ft.Icon(ft.icons.CLOUD_DOWNLOAD_ROUNDED, size=20),
+                                    ft.Text("Download All", size=14),
+                                ],
+                                tight=True,
+                                spacing=8,
+                            ),
+                            style=ft.ButtonStyle(
+                                color=ft.colors.ON_PRIMARY,
+                                bgcolor=ft.colors.PINK,
+                            ),
+                            on_click=lambda e: handle_download_choice(e, "all"),
                         ),
                         padding=ft.padding.only(top=16),
+                        alignment=ft.alignment.center,
                     ),
                 ],
                 scroll=ft.ScrollMode.AUTO,
+                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
                 spacing=0,
             ),
             padding=24,
-            width=min(400, self.page.width * 0.9),
+            width=min(400, self.page.width * 0.9) if self.page else 400,
         )
 
         dialog = ft.AlertDialog(
@@ -1809,6 +1807,7 @@ class DoujindesuApp:
                 size=20,
                 weight=ft.FontWeight.BOLD,
                 color=ft.colors.ON_SURFACE,
+                text_align=ft.TextAlign.CENTER,
             ),
             content=dialog_content,
             actions=[
