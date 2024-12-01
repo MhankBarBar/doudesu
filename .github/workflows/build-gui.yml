@@ -9,38 +9,7 @@ on:
 
 jobs:
   build-gui:
-    strategy:
-      matrix:
-        include:
-          - os: windows-latest
-            output_name: doudesu-win64.exe
-            asset_name: doudesu-gui-windows-x64.exe
-            tls_client_file: tls-client-64.dll
-            arch: x64
-
-          - os: ubuntu-latest
-            output_name: doudesu-x86
-            asset_name: doudesu-gui-linux-x86
-            tls_client_file: tls-client-x86.so
-            arch: x86
-          - os: ubuntu-latest
-            output_name: doudesu-amd64
-            asset_name: doudesu-gui-linux-amd64
-            tls_client_file: tls-client-amd64.so
-            arch: amd64
-
-          - os: macos-latest
-            output_name: doudesu-x86
-            asset_name: doudesu-gui-macos-x86
-            tls_client_file: tls-client-x86.dylib
-            arch: x86
-          - os: macos-latest
-            output_name: doudesu-arm64
-            asset_name: doudesu-gui-macos-arm64
-            tls_client_file: tls-client-arm64.dylib
-            arch: arm64
-
-    runs-on: ${{ matrix.os }}
+    runs-on: windows-latest
 
     steps:
     - uses: actions/checkout@v3
@@ -69,14 +38,13 @@ jobs:
       run: |
         echo 'from doudesu.ui.gui import run_gui; run_gui()' > gui_main.py
 
-    - name: Build with PyInstaller (Windows)
-      if: matrix.os == 'windows-latest'
+    - name: Build with PyInstaller
+      shell: cmd
       run: |
-        python -m PyInstaller --name ${{ matrix.output_name }} --onefile --windowed ^
+        python -m PyInstaller --name doudesu.exe --onefile --windowed ^
         --icon doudesu/assets/images/logo.png ^
         --add-data "doudesu/assets;doudesu/assets" ^
-        --add-binary "${{ env.TLS_CLIENT_PATH }}/dependencies/${{ matrix.tls_client_file }};tls_client/dependencies" ^
-        --target-architecture ${{ matrix.arch }} ^
+        --add-binary "${{ env.TLS_CLIENT_PATH }}/dependencies/tls-client-64.dll;tls_client/dependencies" ^
         --hidden-import flet_core ^
         --hidden-import flet_runtime ^
         --hidden-import requests ^
@@ -92,52 +60,23 @@ jobs:
         --collect-all tls_client ^
         gui_main.py
 
-    - name: Build with PyInstaller (Unix)
-      if: matrix.os != 'windows-latest'
-      run: |
-        python -m PyInstaller --name ${{ matrix.output_name }} --onefile --windowed \
-        --icon doudesu/assets/images/logo.png \
-        --add-data "doudesu/assets:doudesu/assets" \
-        --add-binary "${{ env.TLS_CLIENT_PATH }}/dependencies/${{ matrix.tls_client_file }}:tls_client/dependencies" \
-        --target-architecture ${{ matrix.arch }} \
-        --hidden-import flet_core \
-        --hidden-import flet_runtime \
-        --hidden-import requests \
-        --hidden-import bs4 \
-        --hidden-import PIL \
-        --hidden-import rich \
-        --hidden-import tls_client \
-        --hidden-import doudesu.core.doudesu \
-        --hidden-import doudesu.utils.constants \
-        --hidden-import doudesu.utils.converter \
-        --hidden-import doudesu.ui.components.loading \
-        --collect-all doudesu \
-        --collect-all tls_client \
-        gui_main.py
-
-    - name: Upload artifact
-      uses: actions/upload-artifact@v3
+    - name: Get Latest Release
+      id: latest_release
+      uses: actions/github-script@v6
       with:
-        name: ${{ matrix.asset_name }}
-        path: dist/${{ matrix.output_name }}
+        script: |
+          const releases = await github.rest.repos.listReleases({
+            owner: context.repo.owner,
+            repo: context.repo.repo
+          });
+          if (releases.data.length === 0) return;
+          return releases.data[0].tag_name;
 
-  release:
-    needs: build-gui
-    runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
-
-    steps:
-    - name: Download artifacts
-      uses: actions/download-artifact@v3
-
-    - name: Create Release
+    - name: Upload to Latest Release
+      if: steps.latest_release.outputs.result != ''
       uses: softprops/action-gh-release@v1
       with:
-        files: |
-          doudesu-gui-windows-x64.exe/doudesu-win64.exe
-          doudesu-gui-linux-x86/doudesu-x86
-          doudesu-gui-linux-amd64/doudesu-amd64
-          doudesu-gui-macos-x86/doudesu-x86
-          doudesu-gui-macos-arm64/doudesu-arm64
+        tag_name: ${{ steps.latest_release.outputs.result }}
+        files: dist/doudesu.exe
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
