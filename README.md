@@ -4,10 +4,12 @@
     <p>A powerful manga downloader and Python wrapper for doujindesu.tv with both CLI and GUI interfaces.</p>
 </div>
 
+<div align="center">
 ![Python Version](https://img.shields.io/pypi/pyversions/doudesu?logo=python)
 ![License](https://img.shields.io/pypi/l/doudesu?logo=gnu)
 ![PyPI Version](https://img.shields.io/pypi/v/doudesu?logo=pypi)
 ![Downloads](https://img.shields.io/pypi/dm/doudesu?logo=pypi)
+</div>
 
 ## Features
 
@@ -44,6 +46,12 @@ doudesu --gui
 # Launch GUI in browser mode on localhost:6969
 doudesu --browser
 
+# Launch API interface
+doudesu --api
+
+# Launch API with custom port
+doudesu --api --port 6969
+
 # Launch interactive CLI interface
 doudesu --cli
 
@@ -66,6 +74,7 @@ Options:
   --gui          Run in GUI mode (requires doudesu[gui] installation)
   --browser      Run GUI in browser mode on localhost:6969
   --api          Run doudesu in API mode using FastAPI
+  --port INT     Run API on custom port (default: 6969)
   --search TEXT  Search manga by keyword
   --page INT     Page number for search results (default: 1)
   --url TEXT     Download manga by URL

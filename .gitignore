@@ -37,3 +37,6 @@ ENV/
 
 # Project specific
 result/
+
+# lint
+.ruff_cache/

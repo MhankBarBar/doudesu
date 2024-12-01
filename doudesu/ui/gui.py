@@ -76,14 +76,14 @@ class DoujindesuApp:
         self.main_status_text = ft.Text(
             value="",
             size=16,
-            color=ft.colors.BLUE,
+            color=ft.colors.PINK,
             visible=False,
         )
 
         self.search_status_text = ft.Text(
             value="",
             size=16,
-            color=ft.colors.BLUE,
+            color=ft.colors.PINK,
             visible=False,
         )
 
@@ -92,7 +92,7 @@ class DoujindesuApp:
     def initialize_controls(self):
         """Initialize all controls but don't create views yet."""
         self.logo = ft.Image(
-            src="/images/logo.png" if self.is_dark else "/images/logo_light.png",
+            src="/images/logo.png",
             width=None,
             height=None,
             fit=ft.ImageFit.CONTAIN,
@@ -105,8 +105,8 @@ class DoujindesuApp:
             "expand": True,
             "border_radius": 12,
             "border_color": ft.colors.OUTLINE,
-            "focused_border_color": ft.colors.PRIMARY,
-            "cursor_color": ft.colors.PRIMARY,
+            "focused_border_color": ft.colors.PINK,
+            "cursor_color": ft.colors.PINK,
             "text_size": 16,
             "content_padding": ft.padding.symmetric(horizontal=20, vertical=16),
             "filled": True,
@@ -136,8 +136,8 @@ class DoujindesuApp:
         button_style = {
             "style": ft.ButtonStyle(
                 bgcolor={
-                    ft.MaterialState.DEFAULT: ft.colors.PRIMARY,
-                    ft.MaterialState.HOVERED: ft.colors.PRIMARY_CONTAINER,
+                    ft.MaterialState.DEFAULT: ft.colors.PINK,
+                    ft.MaterialState.HOVERED: ft.colors.PINK_100,
                 },
                 shape={
                     ft.MaterialState.DEFAULT: ft.RoundedRectangleBorder(radius=12),
@@ -212,7 +212,7 @@ class DoujindesuApp:
                     ft.IconButton(
                         icon=ft.icons.DARK_MODE_ROUNDED,
                         selected_icon=ft.icons.LIGHT_MODE_ROUNDED,
-                        icon_color=ft.colors.PRIMARY,
+                        icon_color=ft.colors.PINK,
                         selected=self.is_dark,
                         on_click=self.toggle_theme,
                         tooltip="Toggle theme",
@@ -220,13 +220,13 @@ class DoujindesuApp:
                             shape={
                                 ft.MaterialState.DEFAULT: ft.CircleBorder(),
                             },
-                            overlay_color=ft.colors.with_opacity(0.1, ft.colors.PRIMARY),
+                            overlay_color=ft.colors.with_opacity(0.1, ft.colors.PINK),
                         ),
                     ),
                     ft.IconButton(
                         icon=ft.icons.BLUR_ON_ROUNDED,
                         selected_icon=ft.icons.BLUR_OFF_ROUNDED,
-                        icon_color=ft.colors.PRIMARY,
+                        icon_color=ft.colors.PINK,
                         selected=self.blur_thumbnails,
                         on_click=self.toggle_blur,
                         tooltip="Toggle blur",
@@ -234,13 +234,13 @@ class DoujindesuApp:
                             shape={
                                 ft.MaterialState.DEFAULT: ft.CircleBorder(),
                             },
-                            overlay_color=ft.colors.with_opacity(0.1, ft.colors.PRIMARY),
+                            overlay_color=ft.colors.with_opacity(0.1, ft.colors.PINK),
                         ),
                     ),
                     ft.Divider(height=20, thickness=1),
                     ft.IconButton(
                         icon=ft.icons.SEARCH_ROUNDED,
-                        icon_color=ft.colors.PRIMARY if self.selected_nav_index == 0 else ft.colors.ON_SURFACE_VARIANT,
+                        icon_color=ft.colors.PINK if self.selected_nav_index == 0 else ft.colors.ON_SURFACE_VARIANT,
                         selected=self.selected_nav_index == 0,
                         on_click=lambda e: self.handle_option_change(0),
                         tooltip="Search",
@@ -248,12 +248,12 @@ class DoujindesuApp:
                             shape={
                                 ft.MaterialState.DEFAULT: ft.CircleBorder(),
                             },
-                            overlay_color=ft.colors.with_opacity(0.1, ft.colors.PRIMARY),
+                            overlay_color=ft.colors.with_opacity(0.1, ft.colors.PINK),
                         ),
                     ),
                     ft.IconButton(
                         icon=ft.icons.LINK_ROUNDED,
-                        icon_color=ft.colors.PRIMARY if self.selected_nav_index == 1 else ft.colors.ON_SURFACE_VARIANT,
+                        icon_color=ft.colors.PINK if self.selected_nav_index == 1 else ft.colors.ON_SURFACE_VARIANT,
                         selected=self.selected_nav_index == 1,
                         on_click=lambda e: self.handle_option_change(1),
                         tooltip="Download by URL",
@@ -261,7 +261,7 @@ class DoujindesuApp:
                             shape={
                                 ft.MaterialState.DEFAULT: ft.CircleBorder(),
                             },
-                            overlay_color=ft.colors.with_opacity(0.1, ft.colors.PRIMARY),
+                            overlay_color=ft.colors.with_opacity(0.1, ft.colors.PINK),
                         ),
                     ),
                 ],
@@ -319,7 +319,7 @@ class DoujindesuApp:
                         width=None,
                         expand=True,
                         height=4,
-                        color=ft.colors.PRIMARY,
+                        color=ft.colors.PINK,
                         bgcolor=ft.colors.SURFACE_VARIANT,
                     ),
                     ft.Text(
@@ -456,8 +456,8 @@ class DoujindesuApp:
         search_icon = self.nav_rail.content.controls[3]
         download_icon = self.nav_rail.content.controls[4]
 
-        search_icon.icon_color = ft.colors.PRIMARY if self.selected_nav_index == 0 else ft.colors.ON_SURFACE_VARIANT
-        download_icon.icon_color = ft.colors.PRIMARY if self.selected_nav_index == 1 else ft.colors.ON_SURFACE_VARIANT
+        search_icon.icon_color = ft.colors.PINK if self.selected_nav_index == 0 else ft.colors.ON_SURFACE_VARIANT
+        download_icon.icon_color = ft.colors.PINK if self.selected_nav_index == 1 else ft.colors.ON_SURFACE_VARIANT
         search_icon.selected = self.selected_nav_index == 0
         download_icon.selected = self.selected_nav_index == 1
 
@@ -494,7 +494,7 @@ class DoujindesuApp:
         self.page.update()
 
     def create_result_control(self, result: Result):
-        type_color = ft.colors.BLUE_700 if result.type.lower() == "doujinshi" else ft.colors.GREEN_700
+        type_color = ft.colors.PINK_700 if result.type.lower() == "doujinshi" else ft.colors.GREEN_700
         title_color = ft.colors.WHITE if self.theme_mode == ft.ThemeMode.DARK else ft.colors.GREY_800
 
         image_stack = ft.Stack(
@@ -567,7 +567,7 @@ class DoujindesuApp:
                                             size=12,
                                             color=ft.colors.WHITE,
                                         ),
-                                        bgcolor=ft.colors.BLUE_700,
+                                        bgcolor=ft.colors.PINK_700,
                                         padding=8,
                                         border_radius=15,
                                     ),
@@ -580,7 +580,7 @@ class DoujindesuApp:
                     ),
                     ft.IconButton(
                         icon=ft.icons.LINK,
-                        icon_color=ft.colors.BLUE_400,
+                        icon_color=ft.colors.PINK_400,
                         tooltip="Copy URL",
                         on_click=copy_url,
                     ),
@@ -611,7 +611,7 @@ class DoujindesuApp:
             self.page.show_snack_bar(self.snackbar)
             return
 
-        type_color = ft.colors.BLUE_700 if details.type.lower() == "doujinshi" else ft.colors.GREEN_700
+        type_color = ft.colors.PINK_700 if details.type.lower() == "doujinshi" else ft.colors.GREEN_700
 
         download_btn = ft.ElevatedButton(
             content=ft.Row(
@@ -622,7 +622,7 @@ class DoujindesuApp:
                 tight=True,
                 spacing=8,
             ),
-            bgcolor=ft.colors.PRIMARY,
+            bgcolor=ft.colors.PINK,
             color=ft.colors.ON_PRIMARY,
             on_click=lambda e: self.handle_download_click(e, result),
             style=ft.ButtonStyle(
@@ -680,7 +680,7 @@ class DoujindesuApp:
                     [
                         ft.IconButton(
                             icon=ft.icons.ARROW_BACK,
-                            icon_color=ft.colors.BLUE_400,
+                            icon_color=ft.colors.PINK_400,
                             tooltip="Back to Results",
                             on_click=self.show_search_results,
                         ),
@@ -707,7 +707,7 @@ class DoujindesuApp:
                                                 weight=ft.FontWeight.BOLD,
                                                 color=text_color,
                                             ),
-                                            ft.Divider(height=2, color=ft.colors.BLUE_400),
+                                            ft.Divider(height=2, color=ft.colors.PINK_400),
                                             ft.Text(
                                                 f"Series: {details.series}",
                                                 size=16,
@@ -736,7 +736,7 @@ class DoujindesuApp:
                                                             size=12,
                                                             color=ft.colors.WHITE,
                                                         ),
-                                                        bgcolor=ft.colors.BLUE_700,
+                                                        bgcolor=ft.colors.PINK_700,
                                                         padding=ft.padding.all(8),
                                                         border_radius=15,
                                                     )
@@ -763,7 +763,7 @@ class DoujindesuApp:
                                                             size=14,
                                                             color=ft.colors.WHITE,
                                                         ),
-                                                        bgcolor=ft.colors.BLUE_700,
+                                                        bgcolor=ft.colors.PINK_700,
                                                         padding=10,
                                                         border_radius=20,
                                                     ),
@@ -792,7 +792,7 @@ class DoujindesuApp:
                                         ],
                                         spacing=15,
                                     ),
-                                    padding=30,
+                                    padding=20,
                                     border_radius=12,
                                     gradient=ft.LinearGradient(
                                         begin=ft.alignment.top_center,
@@ -1004,7 +1004,7 @@ class DoujindesuApp:
                                 spacing=8,
                             ),
                             style=ft.ButtonStyle(
-                                bgcolor=ft.colors.BLUE_700,
+                                bgcolor=ft.colors.PINK_700,
                                 color=ft.colors.WHITE,
                             ),
                             on_click=lambda e: handle_download_choice(e, "single"),
@@ -1347,7 +1347,7 @@ class DoujindesuApp:
         self.page = page
 
         self.page.theme = ft.Theme(
-            color_scheme_seed=ft.colors.BLUE,
+            color_scheme_seed=ft.colors.PINK,
             use_material3=True,
         )
         self.page.theme_mode = "dark"
@@ -1594,8 +1594,8 @@ class DoujindesuApp:
         input_style = {
             "border_radius": 8,
             "border_color": ft.colors.OUTLINE,
-            "focused_border_color": ft.colors.PRIMARY,
-            "cursor_color": ft.colors.PRIMARY,
+            "focused_border_color": ft.colors.PINK,
+            "cursor_color": ft.colors.PINK,
             "text_size": 16,
             "content_padding": ft.padding.symmetric(horizontal=16, vertical=12),
             "filled": True,
@@ -1624,8 +1624,8 @@ class DoujindesuApp:
             label="Select Chapter",
             hint_text="Choose a chapter",
             border=ft.InputBorder.OUTLINE,
-            focused_border_color=ft.colors.PRIMARY,
-            focused_color=ft.colors.PRIMARY,
+            focused_border_color=ft.colors.PINK,
+            focused_color=ft.colors.PINK,
             text_size=16,
             content_padding=16,
             options=[ft.dropdown.Option(f"Chapter {i+1}") for i in range(len(chapters))],
@@ -1689,7 +1689,7 @@ class DoujindesuApp:
                     tight=True,
                     spacing=8,
                 ),
-                bgcolor=ft.colors.PRIMARY,
+                bgcolor=ft.colors.PINK,
                 color=ft.colors.ON_PRIMARY,
                 on_click=lambda e: handle_download_choice(e, "single"),
                 **button_style,
@@ -1703,7 +1703,7 @@ class DoujindesuApp:
                     tight=True,
                     spacing=8,
                 ),
-                bgcolor=ft.colors.PRIMARY,
+                bgcolor=ft.colors.PINK,
                 color=ft.colors.ON_PRIMARY,
                 on_click=lambda e: handle_download_choice(e, "range"),
                 **button_style,
@@ -1717,7 +1717,7 @@ class DoujindesuApp:
                     tight=True,
                     spacing=8,
                 ),
-                bgcolor=ft.colors.PRIMARY,
+                bgcolor=ft.colors.PINK,
                 color=ft.colors.ON_PRIMARY,
                 on_click=lambda e: handle_download_choice(e, "all"),
                 **button_style,
@@ -1732,7 +1732,7 @@ class DoujindesuApp:
                             [
                                 ft.Icon(
                                     ft.icons.MENU_BOOK_ROUNDED,
-                                    color=ft.colors.PRIMARY,
+                                    color=ft.colors.PINK,
                                     size=24,
                                 ),
                                 ft.Text(
@@ -1816,7 +1816,7 @@ class DoujindesuApp:
                     text="Cancel",
                     on_click=close_dialog,
                     style=ft.ButtonStyle(
-                        color=ft.colors.PRIMARY,
+                        color=ft.colors.PINK,
                     ),
                 ),
             ],
