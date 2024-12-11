@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "doudesu"
-version = "1.0.0"
+version = "1.0.1"
 description = "A Python wrapper and downloader for doujindesu.tv"
 readme = "README.md"
 authors = [

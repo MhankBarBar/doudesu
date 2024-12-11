@@ -3,8 +3,10 @@ GUI interface for the Doudesu.
 This module requires the 'gui' extra dependencies.
 """
 
+import json
 import os
 import sys
+from dataclasses import dataclass
 from importlib.util import find_spec
 from pathlib import Path
 
@@ -20,6 +22,273 @@ if find_spec("flet"):
     import flet as ft
 
     from .components.loading import LoadingAnimation
+
+
+@dataclass
+class AppSettings:
+    result_path: str = DEFAULT_SETTINGS["result_path"]
+    default_theme: str = DEFAULT_SETTINGS["default_theme"]
+    blur_thumbnails: bool = DEFAULT_SETTINGS["blur_thumbnails"]
+    proxy: str = ""
+    proxy_enabled: bool = False
+
+
+class SettingsDialog(ft.AlertDialog):
+    def __init__(self, page: ft.Page, app_instance, settings: AppSettings):
+        super().__init__()
+        self.page = page
+        self.app = app_instance
+        self.settings = settings
+        self.modal = True
+
+        self.setup_controls()
+        self.content = self.build_content()
+        self.title = ft.Text("Settings", size=24, weight=ft.FontWeight.BOLD)
+        self.actions = [
+            ft.TextButton(
+                "Cancel",
+                on_click=self.cancel,
+                style=ft.ButtonStyle(
+                    color=ft.colors.ON_SURFACE_VARIANT,
+                ),
+            ),
+            ft.TextButton(
+                "Save",
+                on_click=self.save,
+                style=ft.ButtonStyle(
+                    color=ft.colors.PRIMARY,
+                ),
+            ),
+        ]
+        self.shape = ft.RoundedRectangleBorder(radius=16)
+
+    def setup_controls(self):
+        label_style = ft.TextStyle(
+            size=14,
+            weight=ft.FontWeight.W_600,
+            color=ft.colors.ON_SURFACE_VARIANT,
+        )
+
+        self.result_path = ft.TextField(
+            label="Download Path",
+            value=self.settings.result_path,
+            border=ft.InputBorder.OUTLINE,
+            expand=True,
+            label_style=label_style,
+            focused_border_color=ft.colors.PRIMARY,
+            focused_color=ft.colors.PRIMARY,
+        )
+
+        self.proxy_enabled = ft.Switch(
+            label="Enable Proxy",
+            value=self.settings.proxy_enabled,
+            active_color=ft.colors.PRIMARY,
+            label_style=label_style,
+        )
+
+        self.proxy_url = ft.TextField(
+            label="Proxy URL",
+            value=self.settings.proxy,
+            hint_text="e.g., http://proxy.example.com:8080",
+            border=ft.InputBorder.OUTLINE,
+            expand=True,
+            disabled=not self.settings.proxy_enabled,
+            label_style=label_style,
+            focused_border_color=ft.colors.PRIMARY,
+            focused_color=ft.colors.PRIMARY,
+        )
+
+        self.default_theme = ft.Dropdown(
+            label="Default Theme",
+            value=self.settings.default_theme,
+            options=[
+                ft.dropdown.Option("light", "Light Theme"),
+                ft.dropdown.Option("dark", "Dark Theme"),
+            ],
+            border=ft.InputBorder.OUTLINE,
+            expand=True,
+            label_style=label_style,
+            focused_border_color=ft.colors.PRIMARY,
+            focused_color=ft.colors.PRIMARY,
+        )
+
+        self.blur_thumbnails = ft.Switch(
+            label="Blur Thumbnails",
+            value=self.settings.blur_thumbnails,
+            active_color=ft.colors.PRIMARY,
+            label_style=label_style,
+        )
+
+        def on_proxy_switch(e):
+            self.proxy_url.disabled = not e.control.value
+            self.proxy_url.update()
+
+        self.proxy_enabled.on_change = on_proxy_switch
+
+    def build_content(self):
+        return ft.Container(
+            content=ft.Column(
+                [
+                    ft.Container(
+                        content=ft.Column(
+                            [
+                                ft.Row(
+                                    [
+                                        ft.Icon(
+                                            ft.icons.FOLDER_ROUNDED,
+                                            color=ft.colors.PRIMARY,
+                                        ),
+                                        ft.Text(
+                                            "Download Settings",
+                                            size=16,
+                                            weight=ft.FontWeight.BOLD,
+                                            color=ft.colors.ON_SURFACE,
+                                        ),
+                                    ],
+                                    spacing=10,
+                                ),
+                                ft.Container(
+                                    content=ft.Row(
+                                        [
+                                            self.result_path,
+                                            ft.IconButton(
+                                                icon=ft.icons.FOLDER_OPEN_ROUNDED,
+                                                icon_color=ft.colors.PRIMARY,
+                                                tooltip="Browse",
+                                                on_click=self.browse_folder,
+                                            ),
+                                        ],
+                                        spacing=10,
+                                    ),
+                                    padding=ft.padding.only(left=34),
+                                ),
+                            ]
+                        ),
+                        padding=10,
+                        bgcolor=ft.colors.SURFACE_VARIANT,
+                        border_radius=12,
+                    ),
+                    ft.Container(
+                        content=ft.Column(
+                            [
+                                ft.Row(
+                                    [
+                                        ft.Icon(
+                                            ft.icons.SECURITY_ROUNDED,
+                                            color=ft.colors.PRIMARY,
+                                        ),
+                                        ft.Text(
+                                            "Proxy Settings",
+                                            size=16,
+                                            weight=ft.FontWeight.BOLD,
+                                            color=ft.colors.ON_SURFACE,
+                                        ),
+                                    ],
+                                    spacing=10,
+                                ),
+                                ft.Container(
+                                    content=ft.Column(
+                                        [
+                                            self.proxy_enabled,
+                                            self.proxy_url,
+                                        ]
+                                    ),
+                                    padding=ft.padding.only(left=34),
+                                ),
+                            ]
+                        ),
+                        padding=10,
+                        bgcolor=ft.colors.SURFACE_VARIANT,
+                        border_radius=12,
+                    ),
+                    ft.Container(
+                        content=ft.Column(
+                            [
+                                ft.Row(
+                                    [
+                                        ft.Icon(
+                                            ft.icons.PALETTE_ROUNDED,
+                                            color=ft.colors.PRIMARY,
+                                        ),
+                                        ft.Text(
+                                            "Appearance",
+                                            size=16,
+                                            weight=ft.FontWeight.BOLD,
+                                            color=ft.colors.ON_SURFACE,
+                                        ),
+                                    ],
+                                    spacing=10,
+                                ),
+                                ft.Container(
+                                    content=ft.Column(
+                                        [
+                                            self.default_theme,
+                                            self.blur_thumbnails,
+                                        ]
+                                    ),
+                                    padding=ft.padding.only(left=34),
+                                ),
+                            ]
+                        ),
+                        padding=10,
+                        bgcolor=ft.colors.SURFACE_VARIANT,
+                        border_radius=12,
+                    ),
+                ],
+                spacing=16,
+            ),
+            width=min(500, self.page.width * 0.8),
+            padding=20,
+            bgcolor=ft.colors.SURFACE,
+        )
+
+    def browse_folder(self, e):
+        def on_dialog_result(e: ft.FilePickerResultEvent):
+            if e.path:
+                self.result_path.value = e.path
+                self.result_path.update()
+
+        picker = ft.FilePicker(on_result=on_dialog_result)
+        self.page.overlay.append(picker)
+        self.page.update()
+        picker.get_directory_path()
+
+    def save(self, e):
+        self.settings.result_path = self.result_path.value
+        self.settings.default_theme = self.default_theme.value
+        self.settings.blur_thumbnails = self.blur_thumbnails.value
+        self.settings.proxy_enabled = self.proxy_enabled.value
+        self.settings.proxy = self.proxy_url.value if self.proxy_enabled.value else ""
+
+        settings_file = Path.home() / ".doudesu" / "settings.json"
+        settings_file.parent.mkdir(exist_ok=True)
+        settings_dict = {
+            "result_path": self.settings.result_path,
+            "default_theme": self.settings.default_theme,
+            "blur_thumbnails": self.settings.blur_thumbnails,
+            "proxy": self.settings.proxy,
+            "proxy_enabled": self.settings.proxy_enabled,
+        }
+        with open(settings_file, "w") as f:
+            json.dump(settings_dict, f, indent=4)
+
+        self.app.result_folder = self.settings.result_path
+        self.app.is_dark = self.settings.default_theme == "dark"
+        self.app.blur_thumbnails = self.settings.blur_thumbnails
+
+        if self.settings.proxy_enabled and self.settings.proxy:
+            os.environ["HTTP_PROXY"] = self.settings.proxy
+            os.environ["HTTPS_PROXY"] = self.settings.proxy
+        else:
+            os.environ.pop("HTTP_PROXY", None)
+            os.environ.pop("HTTPS_PROXY", None)
+
+        self.open = False
+        self.page.update()
+
+    def cancel(self, e):
+        self.open = False
+        self.page.update()
 
 
 def run_gui(browser_mode: bool = False):
@@ -48,7 +317,8 @@ def run_gui(browser_mode: bool = False):
             ft.app(target=main, assets_dir=assets_dir)
     except ImportError:
         console.print(
-            "[red]GUI dependencies not installed. Please install with:[/red]" "\n[yellow]pip install doudesu\[gui][/yellow]"  # noqa: W605
+            "[red]GUI dependencies not installed. Please install with:[/red]"
+            "\n[yellow]pip install doudesu\[gui][/yellow]"  # noqa: W605
         )
         sys.exit(1)
 
@@ -86,7 +356,36 @@ class DoujindesuApp:
             visible=False,
         )
 
+        self.settings = self.load_settings()
+
+        self.result_folder = self.settings.result_path
+        self.is_dark = self.settings.default_theme == "dark"
+        self.blur_thumbnails = self.settings.blur_thumbnails
+
+        if self.settings.proxy_enabled and self.settings.proxy:
+            os.environ["HTTP_PROXY"] = self.settings.proxy
+            os.environ["HTTPS_PROXY"] = self.settings.proxy
+
         self.initialize_controls()
+
+        # Get proxy settings
+        self.proxy = None
+        if self.settings.proxy_enabled and self.settings.proxy:
+            self.proxy = {"http": self.settings.proxy, "https": self.settings.proxy}
+
+    def load_settings(self) -> AppSettings:
+        settings_file = Path.home() / ".doudesu" / "settings.json"
+        if settings_file.exists():
+            with open(settings_file) as f:
+                data = json.load(f)
+                return AppSettings(**data)
+        return AppSettings()
+
+    def show_settings(self, e):
+        dialog = SettingsDialog(self.page, self, self.settings)
+        self.page.overlay.append(dialog)
+        dialog.open = True
+        self.page.update()
 
     def initialize_controls(self):
         """Initialize all controls but don't create views yet."""
@@ -135,11 +434,11 @@ class DoujindesuApp:
         button_style = {
             "style": ft.ButtonStyle(
                 bgcolor={
-                    ft.MaterialState.DEFAULT: ft.colors.PINK,
-                    ft.MaterialState.HOVERED: ft.colors.PINK_100,
+                    ft.ControlState.DEFAULT: ft.colors.PINK,
+                    ft.ControlState.HOVERED: ft.colors.PINK_300,
                 },
                 shape={
-                    ft.MaterialState.DEFAULT: ft.RoundedRectangleBorder(radius=12),
+                    ft.ControlState.DEFAULT: ft.RoundedRectangleBorder(radius=12),
                 },
                 padding=ft.padding.symmetric(horizontal=32, vertical=20),
                 animation_duration=200,
@@ -153,8 +452,8 @@ class DoujindesuApp:
         self.search_button = ft.ElevatedButton(
             content=ft.Row(
                 [
-                    ft.Icon(ft.icons.SEARCH_ROUNDED, size=20),
-                    ft.Text("Search", size=16, weight=ft.FontWeight.W_500),
+                    ft.Icon(ft.icons.SEARCH_ROUNDED, size=20, color=ft.colors.ON_SURFACE_VARIANT),
+                    ft.Text("Search", size=16, weight=ft.FontWeight.W_500, color=ft.colors.ON_SURFACE),
                 ],
                 tight=True,
                 spacing=8,
@@ -166,8 +465,8 @@ class DoujindesuApp:
         self.download_button = ft.ElevatedButton(
             content=ft.Row(
                 [
-                    ft.Icon(ft.icons.DOWNLOAD_ROUNDED, size=20),
-                    ft.Text("Download", size=16, weight=ft.FontWeight.W_500),
+                    ft.Icon(ft.icons.DOWNLOAD_ROUNDED, size=20, color=ft.colors.ON_SURFACE_VARIANT),
+                    ft.Text("Download", size=16, weight=ft.FontWeight.W_500, color=ft.colors.ON_SURFACE_VARIANT),
                 ],
                 tight=True,
                 spacing=8,
@@ -180,8 +479,8 @@ class DoujindesuApp:
         self.previous_button = ft.ElevatedButton(
             content=ft.Row(
                 [
-                    ft.Icon(ft.icons.ARROW_BACK, size=20),
-                    ft.Text("Previous", size=16, weight=ft.FontWeight.W_500),
+                    ft.Icon(ft.icons.ARROW_BACK, size=20, color=ft.colors.ON_SURFACE_VARIANT),
+                    ft.Text("Previous", size=16, weight=ft.FontWeight.W_500, color=ft.colors.ON_SURFACE_VARIANT),
                 ],
                 tight=True,
                 spacing=8,
@@ -194,8 +493,8 @@ class DoujindesuApp:
         self.next_button = ft.ElevatedButton(
             content=ft.Row(
                 [
-                    ft.Icon(ft.icons.ARROW_FORWARD, size=20),
-                    ft.Text("Next", size=16, weight=ft.FontWeight.W_500),
+                    ft.Icon(ft.icons.ARROW_FORWARD, size=20, color=ft.colors.ON_SURFACE_VARIANT),
+                    ft.Text("Next", size=16, weight=ft.FontWeight.W_500, color=ft.colors.ON_SURFACE_VARIANT),
                 ],
                 tight=True,
                 spacing=8,
@@ -217,7 +516,7 @@ class DoujindesuApp:
                         tooltip="Toggle theme",
                         style=ft.ButtonStyle(
                             shape={
-                                ft.MaterialState.DEFAULT: ft.CircleBorder(),
+                                ft.ControlState.DEFAULT: ft.CircleBorder(),
                             },
                             overlay_color=ft.colors.with_opacity(0.1, ft.colors.PINK),
                         ),
@@ -231,7 +530,7 @@ class DoujindesuApp:
                         tooltip="Toggle blur",
                         style=ft.ButtonStyle(
                             shape={
-                                ft.MaterialState.DEFAULT: ft.CircleBorder(),
+                                ft.ControlState.DEFAULT: ft.CircleBorder(),
                             },
                             overlay_color=ft.colors.with_opacity(0.1, ft.colors.PINK),
                         ),
@@ -245,7 +544,7 @@ class DoujindesuApp:
                         tooltip="Search",
                         style=ft.ButtonStyle(
                             shape={
-                                ft.MaterialState.DEFAULT: ft.CircleBorder(),
+                                ft.ControlState.DEFAULT: ft.CircleBorder(),
                             },
                             overlay_color=ft.colors.with_opacity(0.1, ft.colors.PINK),
                         ),
@@ -258,7 +557,21 @@ class DoujindesuApp:
                         tooltip="Download by URL",
                         style=ft.ButtonStyle(
                             shape={
-                                ft.MaterialState.DEFAULT: ft.CircleBorder(),
+                                ft.ControlState.DEFAULT: ft.CircleBorder(),
+                            },
+                            overlay_color=ft.colors.with_opacity(0.1, ft.colors.PINK),
+                        ),
+                    ),
+                    ft.Divider(height=20, thickness=1),
+                    ft.IconButton(
+                        icon=ft.icons.SETTINGS,
+                        icon_color=ft.colors.ON_SURFACE_VARIANT,
+                        selected=False,
+                        on_click=self.show_settings,
+                        tooltip="Settings",
+                        style=ft.ButtonStyle(
+                            shape={
+                                ft.ControlState.DEFAULT: ft.CircleBorder(),
                             },
                             overlay_color=ft.colors.with_opacity(0.1, ft.colors.PINK),
                         ),
@@ -352,7 +665,7 @@ class DoujindesuApp:
             self.loading_animation.update()
 
             try:
-                dodes = Doujindesu.get_search_by_url(self.previous_page_url)
+                dodes = Doujindesu(url=None, proxy=self.proxy).get_search_by_url(self.previous_page_url)
                 self.results = dodes.results
                 self.next_page_url = dodes.next_page_url
                 self.previous_page_url = dodes.previous_page_url
@@ -368,7 +681,7 @@ class DoujindesuApp:
             self.loading_animation.update()
 
             try:
-                dodes = Doujindesu.get_search_by_url(self.next_page_url)
+                dodes = Doujindesu(url=None, proxy=self.proxy).get_search_by_url(self.next_page_url)
                 self.results = dodes.results
                 self.next_page_url = dodes.next_page_url
                 self.previous_page_url = dodes.previous_page_url
@@ -602,7 +915,7 @@ class DoujindesuApp:
     def show_details(self, e, result: Result):
         self.selected_result = result
 
-        details = Doujindesu(result.url).get_details()
+        details = Doujindesu(result.url, proxy=self.proxy).get_details()
 
         if not details:
             self.snackbar.bgcolor = ft.colors.RED_700
@@ -615,8 +928,8 @@ class DoujindesuApp:
         download_btn = ft.ElevatedButton(
             content=ft.Row(
                 [
-                    ft.Icon(ft.icons.DOWNLOAD_ROUNDED, size=20, color=ft.colors.ON_PRIMARY),
-                    ft.Text("Download", size=16, weight=ft.FontWeight.W_500),
+                    ft.Icon(ft.icons.DOWNLOAD_ROUNDED, size=20, color=ft.colors.ON_SURFACE_VARIANT),
+                    ft.Text("Download", size=16, weight=ft.FontWeight.W_500, color=ft.colors.ON_SURFACE_VARIANT),
                 ],
                 tight=True,
                 spacing=8,
@@ -626,7 +939,7 @@ class DoujindesuApp:
             on_click=lambda e: self.handle_download_click(e, result),
             style=ft.ButtonStyle(
                 shape={
-                    ft.MaterialState.DEFAULT: ft.RoundedRectangleBorder(radius=12),
+                    ft.ControlState.DEFAULT: ft.RoundedRectangleBorder(radius=12),
                 },
                 padding=ft.padding.symmetric(horizontal=32, vertical=20),
                 animation_duration=200,
@@ -867,7 +1180,7 @@ class DoujindesuApp:
         self.loading_animation.update()
 
         try:
-            search_result = Doujindesu.search(query)
+            search_result = Doujindesu(url=None, proxy=self.proxy).search(query)
             self.results = search_result.results if search_result else []
             self.next_page_url = search_result.next_page_url if search_result else None
             self.previous_page_url = search_result.previous_page_url if search_result else None
@@ -891,7 +1204,7 @@ class DoujindesuApp:
             return
 
         try:
-            manga = Doujindesu(url)
+            manga = Doujindesu(url, proxy=self.proxy)
             details = manga.get_details()
             if not details:
                 self.snackbar.bgcolor = ft.colors.RED_700
@@ -997,8 +1310,8 @@ class DoujindesuApp:
                         ft.ElevatedButton(
                             content=ft.Row(
                                 [
-                                    ft.Icon(ft.icons.DOWNLOAD, size=20),
-                                    ft.Text("Download Single", size=16),
+                                    ft.Icon(ft.icons.DOWNLOAD, size=20, color=ft.colors.ON_SURFACE_VARIANT),
+                                    ft.Text("Download Single", size=16, color=ft.colors.ON_SURFACE_VARIANT),
                                 ],
                                 spacing=8,
                             ),
@@ -1011,8 +1324,8 @@ class DoujindesuApp:
                         ft.ElevatedButton(
                             content=ft.Row(
                                 [
-                                    ft.Icon(ft.icons.DOWNLOAD_FOR_OFFLINE, size=20),
-                                    ft.Text("Download Range", size=16),
+                                    ft.Icon(ft.icons.DOWNLOAD_FOR_OFFLINE, size=20, color=ft.colors.ON_SURFACE_VARIANT),
+                                    ft.Text("Download Range", size=16, color=ft.colors.ON_SURFACE_VARIANT),
                                 ],
                                 spacing=8,
                             ),
@@ -1029,10 +1342,11 @@ class DoujindesuApp:
                 ft.ElevatedButton(
                     content=ft.Row(
                         [
-                            ft.Icon(ft.icons.DOWNLOAD_FOR_OFFLINE, size=20),
+                            ft.Icon(ft.icons.DOWNLOAD_FOR_OFFLINE, size=20, color=ft.colors.ON_SURFACE_VARIANT),
                             ft.Text(
                                 "Download All" if len(chapters) > 1 else "Download",
                                 size=16,
+                                color=ft.colors.ON_SURFACE_VARIANT,
                             ),
                         ],
                         spacing=8,
@@ -1080,7 +1394,7 @@ class DoujindesuApp:
                 inset_padding=20,
             )
 
-            self.page.dialog = dialog
+            self.page.overlay.append(dialog)
             dialog.open = True
             self.page.update()
 
@@ -1120,7 +1434,7 @@ class DoujindesuApp:
             return "-".join(manga.soup.title.text.split("-")[:-1]).strip()
 
         try:
-            manga = Doujindesu(url)
+            manga = Doujindesu(url, proxy=self.proxy)
             chapters = manga.get_all_chapters()
 
             self.download_container.visible = True
@@ -1257,7 +1571,11 @@ class DoujindesuApp:
                                         [
                                             ft.Container(
                                                 content=ft.Column(
-                                                    [self.search_query if self.selected_nav_index == 0 else self.url_input],
+                                                    [
+                                                        self.search_query
+                                                        if self.selected_nav_index == 0
+                                                        else self.url_input
+                                                    ],
                                                     spacing=10,
                                                 ),
                                                 col={"sm": 12, "md": 12, "lg": 12},
@@ -1354,11 +1672,11 @@ class DoujindesuApp:
         self.page.theme_mode = "dark"
         self.theme_mode = ft.ThemeMode.DARK
 
-        def on_resize(e):
+        def on_resized(e):
             self.main_view.content = self.build_main_view()
             self.page.update()
 
-        self.page.on_resize = on_resize
+        self.page.on_resized = on_resized
 
         self.main_view = ft.Container(
             content=self.build_main_view(),
@@ -1579,7 +1897,7 @@ class DoujindesuApp:
 
     def handle_download_click(self, e, result):
         """Handle download button click from details view."""
-        manga = Doujindesu(result.url)
+        manga = Doujindesu(result.url, proxy=self.proxy)
         chapters = manga.get_all_chapters()
 
         if not chapters:
@@ -1716,8 +2034,10 @@ class DoujindesuApp:
                                 ft.ElevatedButton(
                                     content=ft.Row(
                                         [
-                                            ft.Icon(ft.icons.DOWNLOAD_ROUNDED, size=20),
-                                            ft.Text("Download Single", size=14),
+                                            ft.Icon(
+                                                ft.icons.DOWNLOAD_ROUNDED, size=20, color=ft.colors.ON_SURFACE_VARIANT
+                                            ),
+                                            ft.Text("Download Single", size=14, color=ft.colors.ON_SURFACE_VARIANT),
                                         ],
                                         tight=True,
                                         spacing=8,
@@ -1753,8 +2073,12 @@ class DoujindesuApp:
                                 ft.ElevatedButton(
                                     content=ft.Row(
                                         [
-                                            ft.Icon(ft.icons.DOWNLOAD_FOR_OFFLINE_ROUNDED, size=20),
-                                            ft.Text("Download Range", size=14),
+                                            ft.Icon(
+                                                ft.icons.DOWNLOAD_FOR_OFFLINE_ROUNDED,
+                                                size=20,
+                                                color=ft.colors.ON_SURFACE_VARIANT,
+                                            ),
+                                            ft.Text("Download Range", size=14, color=ft.colors.ON_SURFACE_VARIANT),
                                         ],
                                         tight=True,
                                         spacing=8,
@@ -1776,8 +2100,10 @@ class DoujindesuApp:
                         content=ft.ElevatedButton(
                             content=ft.Row(
                                 [
-                                    ft.Icon(ft.icons.CLOUD_DOWNLOAD_ROUNDED, size=20),
-                                    ft.Text("Download All", size=14),
+                                    ft.Icon(
+                                        ft.icons.CLOUD_DOWNLOAD_ROUNDED, size=20, color=ft.colors.ON_SURFACE_VARIANT
+                                    ),
+                                    ft.Text("Download All", size=14, color=ft.colors.ON_SURFACE_VARIANT),
                                 ],
                                 tight=True,
                                 spacing=8,
@@ -1823,6 +2149,6 @@ class DoujindesuApp:
             shape=ft.RoundedRectangleBorder(radius=12),
         )
 
-        self.page.dialog = dialog
+        self.page.overlay.append(dialog)
         dialog.open = True
         self.page.update()

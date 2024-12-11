@@ -76,7 +76,8 @@ class ImageToPDFConverter:
 
             with ThreadPoolExecutor(max_workers=self.num_threads) as executor:
                 future_to_url = {
-                    executor.submit(self.downloader.download_single_image, url_data): url_data for url_data in chunk_urls
+                    executor.submit(self.downloader.download_single_image, url_data): url_data
+                    for url_data in chunk_urls
                 }
 
                 for future in as_completed(future_to_url):
