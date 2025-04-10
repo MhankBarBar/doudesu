@@ -143,7 +143,7 @@ class Doujindesu(ImageToPDFConverter):
             author=soup.find("tr", {"class": "pages"}).a.text.strip(),
             type=soup.find("tr", {"class": "magazines"}).a.text.strip(),
             score=float(soup.find("div", {"class": "rating-prc"}).text.strip()),
-            status=soup.find("tr", {"class": ""}).a.text.strip(),
+            status=soup.find("tr").a.text.strip(),
             chapter_urls=self.get_all_chapters(),
         )
 
